@@ -91,10 +91,10 @@ jobs:
         run: ./gradlew clean build
 
       - name: Build Sample APK
-        run: ./gradlew projects
+        run: cd samples && ../gradlew :sample-android:assembleDebug
 
       - name: Find APK
-        run: find . -name "*.apk"
+        run: cd samples && find . -name "*.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
