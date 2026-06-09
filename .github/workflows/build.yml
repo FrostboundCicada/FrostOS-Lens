@@ -89,4 +89,15 @@ jobs:
 
       - name: Build
         run: ./gradlew clean build
-# trigger
+
+      - name: Build Sample APK
+        run: ./gradlew :sample-android:assembleDebug
+
+      - name: Find APK
+        run: find . -name "*.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FrostOS-Lens-debug
+          path: "**/*.apk"
