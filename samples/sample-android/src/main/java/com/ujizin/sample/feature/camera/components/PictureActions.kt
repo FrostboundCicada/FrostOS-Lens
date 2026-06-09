@@ -35,6 +35,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.skydoves.cloudy.cloudy
 import coil.decode.VideoFrameDecoder
 import coil.request.ImageRequest
 import coil.request.videoFrameMillis
@@ -54,7 +55,7 @@ fun PictureActions(
   onSwitchCamera: () -> Unit,
 ) {
   Row(
-    modifier = modifier,
+    modifier = modifier.cloudy(radius = 60),
     horizontalArrangement = Arrangement.SpaceEvenly,
     verticalAlignment = Alignment.CenterVertically,
   ) {
@@ -80,7 +81,7 @@ fun GalleryButton(
       .scale(animScale)
       .size(48.dp)
       .clip(CircleShape)
-      .background(Color.Black.copy(alpha = 0.5F), CircleShape)
+      .background(Color.White.copy(alpha = 0.12F), CircleShape)
       .clickable(onClick = onClick),
     contentScale = ContentScale.Crop,
     model = ImageRequest
@@ -113,7 +114,7 @@ private fun SwitchButton(
     modifier = Modifier
       .rotate(rotate)
       .size(48.dp)
-      .background(Color.DarkGray.copy(alpha = 0.25F), CircleShape)
+      .background(Color.White.copy(alpha = 0.12F), CircleShape)
       .clip(CircleShape)
       .then(modifier),
     onClick = {
