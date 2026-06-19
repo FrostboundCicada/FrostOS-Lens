@@ -58,7 +58,7 @@ fun PictureActions(
   Row(
     modifier = modifier
       .cloudy(radius = 20)
-      .liquidGlass(),
+      .liquidGlass(lensCenter = Alignment.Center),
     horizontalArrangement = Arrangement.SpaceEvenly,
     verticalAlignment = Alignment.CenterVertically,
   ) {

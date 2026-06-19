@@ -41,7 +41,7 @@ fun SettingsBox(
     modifier = modifier
       .fillMaxWidth()
       .cloudy(radius = 20)
-      .liquidGlass(),
+      .liquidGlass(lensCenter = Alignment.TopCenter),
   ) {
     FlashBox(
       modifier = Modifier.align(Alignment.TopStart),

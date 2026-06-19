@@ -32,7 +32,7 @@ fun OptionSection(
     modifier = modifier
       .fillMaxWidth()
       .cloudy(radius = 16)
-      .liquidGlass(),
+      .liquidGlass(lensCenter = Alignment.Center),
     horizontalArrangement = Arrangement.Center,
   ) {
     CameraOption.values().forEach { option ->

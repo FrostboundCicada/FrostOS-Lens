@@ -5,9 +5,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
-import com.kieronquinn.monetcompat.MonetCompat
+import com.kieronquinn.monetcompat.core.MonetCompat
 
 private val DarkColorScheme = darkColorScheme(
     primary = Color(0xFF90CAF9),
@@ -26,34 +27,30 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun MonetTheme(
+fun CamposerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val monet = remember { MonetCompat.getInstance() }
-    val monetColors = remember { monet.monetColors }
 
-    val primaryColor = monetColors?.primary?.let { Color(it) } ?: if (darkTheme) DarkColorScheme.primary else LightColorScheme.primary
-    val secondaryColor = monetColors?.secondary?.let { Color(it) } ?: if (darkTheme) DarkColorScheme.secondary else LightColorScheme.secondary
-    val tertiaryColor = monetColors?.tertiary?.let { Color(it) } ?: if (darkTheme) DarkColorScheme.tertiary else LightColorScheme.tertiary
-    val backgroundColor = monetColors?.background?.let { Color(it) } ?: if (darkTheme) DarkColorScheme.background else LightColorScheme.background
-    val surfaceColor = monetColors?.surface?.let { Color(it) } ?: if (darkTheme) DarkColorScheme.surface else LightColorScheme.surface
+    val monetPrimary = monet.getAccentColor(context)
+    val monetSecondary = monet.getSecondaryColor(context)
+    val monetBackground = monet.getBackgroundColor(context)
 
     val colorScheme = if (darkTheme) {
         DarkColorScheme.copy(
-            primary = primaryColor,
-            secondary = secondaryColor,
-            tertiary = tertiaryColor,
-            background = backgroundColor,
-            surface = surfaceColor,
+            primary = Color(monetPrimary),
+            secondary = Color(monetSecondary),
+            background = Color(monetBackground),
+            surface = Color(monetBackground),
         )
     } else {
         LightColorScheme.copy(
-            primary = primaryColor,
-            secondary = secondaryColor,
-            tertiary = tertiaryColor,
-            background = backgroundColor,
-            surface = surfaceColor,
+            primary = Color(monetPrimary),
+            secondary = Color(monetSecondary),
+            background = Color(monetBackground),
+            surface = Color(monetBackground),
         )
     }
 
@@ -62,3 +59,7 @@ fun MonetTheme(
         content = content,
     )
 }
+
+@Deprecated("Use CamposerTheme instead", ReplaceWith("CamposerTheme(content = content)"))
+@Composable
+fun MonetTheme(content: @Composable () -> Unit) = CamposerTheme(content = content)
