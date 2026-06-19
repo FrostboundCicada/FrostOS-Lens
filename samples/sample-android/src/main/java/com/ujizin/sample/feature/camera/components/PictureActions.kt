@@ -9,8 +9,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -49,54 +48,66 @@ import java.io.File
 @Composable
 fun PictureActions(
   modifier: Modifier = Modifier,
-  isVideo: Boolean,
+  cameraMode: com.ujizin.camposer.state.CameraMode,
   isRecording: Boolean,
   lastPicture: File?,
-  onGalleryClick: () -> Unit,
-  onRecording: () -> Unit,
-  onTakePicture: () -> Unit,
+  onCapture: () -> Unit,
   onSwitchCamera: () -> Unit,
+  onGalleryClick: () -> Unit,
 ) {
   Row(
-    modifier = modifier
-      .padding(horizontal = 16.dp, vertical = 12.dp),
-    horizontalArrangement = Arrangement.SpaceEvenly,
+    modifier = modifier.padding(horizontal = 24.dp),
+    horizontalArrangement = Arrangement.SpaceBetween,
     verticalAlignment = Alignment.CenterVertically,
   ) {
     GalleryButton(lastPicture, onClick = onGalleryClick)
     PictureButton(
-      isVideo = isVideo,
+      isVideo = cameraMode == com.ujizin.camposer.state.CameraMode.Video,
       isRecording = isRecording,
-      onClick = { if (isVideo) onRecording() else onTakePicture() },
+      onClick = onCapture,
     )
     SwitchButton(onClick = onSwitchCamera)
   }
 }
 
 @Composable
-fun GalleryButton(
+private fun GalleryButton(
   lastPicture: File?,
+  modifier: Modifier = Modifier,
   onClick: () -> Unit,
 ) {
   var shouldAnimate by remember { mutableStateOf(false) }
-  val animScale by animateFloatAsState(targetValue = if (shouldAnimate) 1.25F else 1F)
-  AsyncImage(
-    modifier = Modifier
-      .scale(animScale)
-      .size(52.dp)
-      .clip(CircleShape)
-      .background(Color.White.copy(alpha = 0.18F), CircleShape)
-      .clickable(onClick = onClick),
-    contentScale = ContentScale.Crop,
-    model = ImageRequest
-      .Builder(LocalContext.current)
-      .data(lastPicture)
-      .decoderFactory(VideoFrameDecoder.Factory())
-      .videoFrameMillis(1)
-      .build(),
-    contentDescription = stringResource(R.string.gallery),
+  val borderColor by animateColorAsState(
+    targetValue = if (shouldAnimate) Color.White else Color.White.copy(alpha = 0.5F),
   )
-
+  Button(
+    modifier = modifier
+      .size(52.dp)
+      .background(Color.White.copy(alpha = 0.18F), CircleShape)
+      .border(BorderStroke(2.dp, borderColor), CircleShape)
+      .clip(CircleShape),
+    contentPaddingValues = androidx.compose.foundation.layout.PaddingValues(4.dp),
+    onClick = onClick,
+  ) {
+    val context = LocalContext.current
+    val request = remember(lastPicture) {
+      ImageRequest.Builder(context)
+        .data(lastPicture)
+        .decoderFactory(VideoFrameDecoder.Factory())
+        .videoFrameMillis(1000)
+        .build()
+    }
+    AsyncImage(
+      modifier = Modifier
+        .size(44.dp)
+        .clip(CircleShape),
+      model = request,
+      contentScale = ContentScale.Crop,
+      contentDescription = stringResource(R.string.gallery),
+      error = painterResource(R.drawable.gallery),
+      placeholder = painterResource(R.drawable.gallery),
+    )
+  }
   LaunchedEffect(lastPicture) {
     shouldAnimate = true
     delay(50)
@@ -121,6 +132,7 @@ private fun SwitchButton(
       .background(Color.White.copy(alpha = 0.18F), CircleShape)
       .clip(CircleShape)
       .then(modifier),
+    contentPaddingValues = androidx.compose.foundation.layout.PaddingValues(12.dp),
     onClick = {
       clicked = !clicked
       onClick()
@@ -159,26 +171,9 @@ private fun PictureButton(
       .liquidGlass(lensCenter = Offset(0f, 0f))
       .border(BorderStroke(4.dp, Color.White), CircleShape)
       .padding(innerPadding)
-      .background(color, RoundedCornerShape(percentShape))
+      .background(color, RoundedCornerShape(percent = percentShape))
       .clip(CircleShape)
       .then(modifier),
     onClick = onClick,
   )
-}
-
-/**
- * 简单的圆形按钮组件 - 兼容原代码
- */
-@Composable
-private fun Button(
-  modifier: Modifier = Modifier,
-  onClick: () -> Unit,
-  content: @Composable () -> Unit = {},
-) {
-  androidx.compose.foundation.layout.Box(
-    modifier = modifier.clickable(onClick = onClick),
-    contentAlignment = Alignment.Center,
-  ) {
-    content()
-  }
 }
