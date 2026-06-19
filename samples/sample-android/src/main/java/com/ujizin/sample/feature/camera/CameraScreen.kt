@@ -168,7 +168,7 @@ fun CameraSection(
           VideoStabilizationConfig(VideoStabilizationMode.Standard),
         )
       },
-    scaleType = if (aspectRatio.isFullScreen) ScaleType.CenterCrop else ScaleType.FitCenter,
+    scaleType = if (aspectRatio.isFullScreen) ScaleType.FillCenter else ScaleType.FitCenter,
     imageAnalyzer = imageAnalyzer,
     isImageAnalysisEnabled = cameraOption == CameraOption.QRCode,
     isPinchToZoomEnabled = usePinchToZoom,

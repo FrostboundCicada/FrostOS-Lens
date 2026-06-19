@@ -1,50 +1,44 @@
 package com.ujizin.sample
 
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import com.kieronquinn.monetcompat.core.MonetCompat
+import androidx.compose.ui.platform.LocalContext
 
 /**
- * 使用 MonetCompat 动态取色的相机主题
- * 从用户壁纸提取动态色 - 支持亮色模式与暗色模式
+ * 使用 Material You 动态颜色的相机主题
+ * - Android 12+ (API 31+): 从壁纸提取动态颜色 (莫奈取色)
+ * - 旧版 Android: 回退到静态颜色方案
  */
 @Composable
 fun CamposerTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
   content: @Composable () -> Unit,
 ) {
-  val monet = MonetCompat.getInstance()
-  val mc = monet.getMonetColors()
-
-  val colorScheme = if (darkTheme) {
-    darkColorScheme(
-      primary = mc.accent1[200]?.let { Color(it.color) } ?: Color(0xFFD0BCFF),
-      secondary = mc.accent2[200]?.let { Color(it.color) } ?: Color(0xFFCCC2DC),
-      tertiary = mc.accent3[200]?.let { Color(it.color) } ?: Color(0xFFEFB8C8),
-      background = mc.neutral1[900]?.let { Color(it.color) } ?: Color(0xFF141218),
-      surface = mc.neutral2[800]?.let { Color(it.color) } ?: Color(0xFF1D1B20),
-      onPrimary = Color(0xFF381E72),
-      onSecondary = Color(0xFF332D41),
-      onTertiary = Color(0xFF492532),
-      onBackground = Color.White,
-      onSurface = Color.White,
+  val context = LocalContext.current
+  val colorScheme = when {
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+      if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    }
+    darkTheme -> darkColorScheme(
+      primary = Color(0xFF90CAF9),
+      secondary = Color(0xFF80DEEA),
+      tertiary = Color(0xFFA5D6A7),
+      background = Color(0xFF121212),
+      surface = Color(0xFF1E1E1E),
     )
-  } else {
-    lightColorScheme(
-      primary = mc.accent1[500]?.let { Color(it.color) } ?: Color(0xFF6750A4),
-      secondary = mc.accent2[500]?.let { Color(it.color) } ?: Color(0xFF625B71),
-      tertiary = mc.accent3[500]?.let { Color(it.color) } ?: Color(0xFF7D5260),
-      background = mc.neutral1[50]?.let { Color(it.color) } ?: Color(0xFFFFFBFE),
-      surface = mc.neutral2[100]?.let { Color(it.color) } ?: Color(0xFFFFFFFF),
-      onPrimary = Color.White,
-      onSecondary = Color.White,
-      onTertiary = Color.White,
-      onBackground = Color(0xFF1C1B1F),
-      onSurface = Color(0xFF1C1B1F),
+    else -> lightColorScheme(
+      primary = Color(0xFF1976D2),
+      secondary = Color(0xFF00BCD4),
+      tertiary = Color(0xFF4CAF50),
+      background = Color(0xFFF5F5F5),
+      surface = Color(0xFFFFFFFF),
     )
   }
 
