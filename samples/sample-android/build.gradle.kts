@@ -35,6 +35,7 @@ dependencies {
   implementation(platform(libs.compose.bom))
   implementation(libs.bundles.compose.android)
   implementation(libs.compose.activity)
+  implementation(libs.compose.material.android)
   implementation(libs.compose.material3.android)
   implementation(libs.compose.material3.icons)
   implementation(libs.compose.navigation.android)
