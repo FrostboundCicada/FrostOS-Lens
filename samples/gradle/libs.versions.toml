@@ -8,6 +8,7 @@ compose-bom = "2026.01.00"
 exoplayer = "2.19.1"
 zxing = "3.5.4"
 cloudy = "0.5.0"
+monetcompat = "1.4"
 appcompat = "1.12.2"
 material = "1.13.0"
 material3 = "1.9.0"
@@ -57,6 +58,7 @@ exoplayer = { module = "com.google.android.exoplayer:exoplayer", version.ref = "
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanist" }
 cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
+monetcompat = { module = "com.github.KieronQuinn:MonetCompat", version.ref = "monetcompat" }
 
 jetbrains-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "kmp-lifecycle" }
 jetbrains-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "multiplatform-nav3-ui" }

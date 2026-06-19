@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.skydoves.cloudy.cloudy
+import com.skydoves.cloudy.liquidGlass
 import coil.decode.VideoFrameDecoder
 import coil.request.ImageRequest
 import coil.request.videoFrameMillis
@@ -55,7 +56,9 @@ fun PictureActions(
   onSwitchCamera: () -> Unit,
 ) {
   Row(
-    modifier = modifier.cloudy(radius = 60),
+    modifier = modifier
+      .cloudy(radius = 20)
+      .liquidGlass(),
     horizontalArrangement = Arrangement.SpaceEvenly,
     verticalAlignment = Alignment.CenterVertically,
   ) {

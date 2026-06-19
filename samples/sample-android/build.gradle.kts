@@ -51,5 +51,6 @@ dependencies {
   implementation(libs.exoplayer)
   implementation(libs.zxing.core)
   implementation(libs.cloudy)
+  implementation(libs.monetcompat)
   implementation(libs.camposer)
 }

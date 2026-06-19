@@ -7,6 +7,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -17,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.skydoves.cloudy.cloudy
+import com.skydoves.cloudy.liquidGlass
 import com.ujizin.sample.extensions.roundTo
 import com.ujizin.sample.feature.camera.model.Flash
 import kotlinx.coroutines.delay
@@ -34,7 +37,12 @@ fun SettingsBox(
   onConfigurationClick: () -> Unit,
   onZoomFinish: () -> Unit,
 ) {
-  Box(modifier = modifier) {
+  Box(
+    modifier = modifier
+      .fillMaxWidth()
+      .cloudy(radius = 20)
+      .liquidGlass(),
+  ) {
     FlashBox(
       modifier = Modifier.align(Alignment.TopStart),
       hasFlashUnit = hasFlashUnit,
