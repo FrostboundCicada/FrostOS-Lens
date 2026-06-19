@@ -42,11 +42,13 @@ import com.ujizin.camposer.state.properties.selector.Saver
 import com.ujizin.camposer.state.properties.selector.inverse
 import com.ujizin.sample.extensions.noClickable
 import com.ujizin.sample.feature.camera.components.ActionBox
+import com.ujizin.sample.feature.camera.components.AspectRatioSelector
 import com.ujizin.sample.feature.camera.components.BlinkPictureBox
 import com.ujizin.sample.feature.camera.components.SettingsBox
 import com.ujizin.sample.feature.camera.mapper.toFlash
 import com.ujizin.sample.feature.camera.mapper.toFlashMode
 import com.ujizin.sample.feature.camera.model.CameraOption
+import com.ujizin.sample.feature.camera.model.AspectRatioOption
 import com.ujizin.sample.feature.camera.model.Flash
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
@@ -135,6 +137,7 @@ fun CameraSection(
   val cameraInfoState by cameraSession.info.collectStateWithLifecycle()
   val hasFlashUnit = cameraInfoState.isFlashSupported
   var cameraOption by rememberSaveable { mutableStateOf(CameraOption.Photo) }
+  var aspectRatio by rememberSaveable { mutableStateOf(AspectRatioOption.Default) }
   val flashMode by cameraSession.state.flashMode.collectAsStateWithLifecycle()
   val enableTorch by cameraSession.state.isTorchEnabled.collectAsStateWithLifecycle()
   val imageAnalyzer = cameraSession.rememberImageAnalyzer(analyze = onAnalyzeImage)
@@ -157,9 +160,9 @@ fun CameraSection(
     camSelector = camSelector,
     captureMode = cameraOption.toCaptureMode(),
     camFormat =
-      remember {
+      remember(aspectRatio) {
         CamFormat(
-          AspectRatioConfig(1F),
+          AspectRatioConfig(aspectRatio.ratio),
           ResolutionConfig.UltraHigh,
           FrameRateConfig(60),
           VideoStabilizationConfig(VideoStabilizationMode.Standard),
@@ -186,6 +189,7 @@ fun CameraSection(
       flashMode = flashMode.toFlash(enableTorch),
       isRecording = isRecording,
       cameraOption = cameraOption,
+      aspectRatio = aspectRatio,
       hasFlashUnit = hasFlashUnit,
       qrCodeText = qrCodeText,
       isVideoSupported = true,
@@ -205,6 +209,7 @@ fun CameraSection(
         }
       },
       onCameraOptionChanged = { cameraOption = it },
+      onAspectRatioChanged = { aspectRatio = it },
       onGalleryClick = onGalleryClick,
       onConfigurationClick = onConfigurationClick,
     )
@@ -219,6 +224,7 @@ fun CameraInnerContent(
   flashMode: Flash,
   isRecording: Boolean,
   cameraOption: CameraOption,
+  aspectRatio: AspectRatioOption,
   hasFlashUnit: Boolean,
   qrCodeText: String?,
   lastPicture: File?,
@@ -231,6 +237,7 @@ fun CameraInnerContent(
   onConfigurationClick: () -> Unit,
   onSwitchCamera: () -> Unit,
   onCameraOptionChanged: (CameraOption) -> Unit,
+  onAspectRatioChanged: (AspectRatioOption) -> Unit,
 ) {
   Column(
     modifier = modifier,
@@ -251,22 +258,35 @@ fun CameraInnerContent(
       onConfigurationClick = onConfigurationClick,
       onZoomFinish = onZoomFinish,
     )
-    ActionBox(
-      modifier =
-        Modifier
-          .fillMaxWidth()
-          .noClickable()
-          .padding(bottom = 32.dp, top = 16.dp),
-      lastPicture = lastPicture,
-      onGalleryClick = onGalleryClick,
-      cameraOption = cameraOption,
-      qrCodeText = qrCodeText,
-      onTakePicture = onTakePicture,
-      isRecording = isRecording,
-      isVideoSupported = isVideoSupported,
-      onRecording = onRecording,
-      onSwitchCamera = onSwitchCamera,
-      onCameraOptionChanged = onCameraOptionChanged,
-    )
+    Column(
+      modifier = Modifier.fillMaxWidth(),
+      horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+    ) {
+      // 比例选择器 - 仅在拍照模式下显示
+      if (cameraOption == CameraOption.Photo) {
+        AspectRatioSelector(
+          modifier = Modifier.padding(bottom = 8.dp),
+          currentRatio = aspectRatio,
+          onRatioChanged = onAspectRatioChanged,
+        )
+      }
+      ActionBox(
+        modifier =
+          Modifier
+            .fillMaxWidth()
+            .noClickable()
+            .padding(bottom = 32.dp, top = 16.dp),
+        lastPicture = lastPicture,
+        onGalleryClick = onGalleryClick,
+        cameraOption = cameraOption,
+        qrCodeText = qrCodeText,
+        onTakePicture = onTakePicture,
+        isRecording = isRecording,
+        isVideoSupported = isVideoSupported,
+        onRecording = onRecording,
+        onSwitchCamera = onSwitchCamera,
+        onCameraOptionChanged = onCameraOptionChanged,
+      )
+    }
   }
 }
