@@ -7,10 +7,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Text
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -25,8 +24,8 @@ import androidx.compose.ui.unit.sp
 import com.ujizin.sample.feature.camera.model.AspectRatioOption
 
 /**
- * 照片/视频比例选择器组件
- * 支持 1:1, 4:3, 16:9, Full
+ * 照片/视频比例选择器
+ * 1:1, 4:3, 16:9, Full
  */
 @Composable
 fun AspectRatioSelector(
@@ -37,11 +36,11 @@ fun AspectRatioSelector(
   Row(
     modifier = modifier
       .background(
-        color = Color.Black.copy(alpha = 0.35f),
+        color = Color.Black.copy(alpha = 0.45f),
         shape = CircleShape,
       )
-      .padding(horizontal = 12.dp, vertical = 4.dp),
-    horizontalArrangement = Arrangement.spacedBy(4.dp),
+      .padding(horizontal = 10.dp, vertical = 4.dp),
+    horizontalArrangement = Arrangement.spacedBy(2.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     AspectRatioOption.values().forEach { option ->
@@ -62,7 +61,7 @@ private fun AspectRatioButton(
   onClick: () -> Unit,
 ) {
   val backgroundColor = if (isSelected) {
-    MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+    MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
   } else {
     Color.Transparent
   }
@@ -77,7 +76,7 @@ private fun AspectRatioButton(
         indication = null,
         onClick = onClick,
       )
-      .padding(horizontal = 10.dp, vertical = 6.dp),
+      .padding(horizontal = 8.dp, vertical = 4.dp),
     contentAlignment = Alignment.Center,
   ) {
     Text(

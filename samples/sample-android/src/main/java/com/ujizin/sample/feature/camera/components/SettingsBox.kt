@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Text
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.Text
 import com.ujizin.sample.extensions.roundTo
 import com.ujizin.sample.feature.camera.model.Flash
 import kotlinx.coroutines.delay
@@ -41,11 +41,7 @@ fun SettingsBox(
   Box(
     modifier = modifier
       .fillMaxWidth()
-      .background(
-        color = Color.Black.copy(alpha = 0.3f),
-        shape = RoundedCornerShape(24.dp),
-      )
-      .padding(horizontal = 16.dp, vertical = 12.dp),
+      .padding(horizontal = 16.dp, vertical = 8.dp),
   ) {
     FlashBox(
       modifier = Modifier.align(Alignment.TopStart),
@@ -59,18 +55,18 @@ fun SettingsBox(
       horizontalAlignment = Alignment.CenterHorizontally,
     ) {
       VideoBox(
-        modifier = Modifier.padding(top = 4.dp),
+        modifier = Modifier.padding(top = 2.dp),
         isRecording = isRecording,
       )
       AnimatedVisibility(
-        modifier = Modifier.padding(top = 16.dp),
+        modifier = Modifier.padding(top = 8.dp),
         enter = fadeIn() + slideInVertically(),
         exit = fadeOut() + slideOutVertically(),
         visible = zoomHasChanged,
       ) {
         Text(
           text = "${zoomRatio.roundTo(1)}X",
-          fontSize = 24.sp,
+          fontSize = 18.sp,
           textAlign = TextAlign.Center,
           color = Color.White,
         )

@@ -5,10 +5,12 @@ import android.widget.Toast
 import androidx.camera.core.ImageProxy
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,10 +19,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.skydoves.cloudy.cloudy
 import com.ujizin.camposer.CameraPreview
 import com.ujizin.camposer.controller.camera.CameraController
 import com.ujizin.camposer.lifecycle.compose.collectStateWithLifecycle
@@ -156,6 +158,7 @@ fun CameraSection(
   }
 
   CameraPreview(
+    modifier = Modifier.fillMaxSize(),
     cameraSession = cameraSession,
     camSelector = camSelector,
     captureMode = cameraOption.toCaptureMode(),
@@ -168,18 +171,12 @@ fun CameraSection(
           VideoStabilizationConfig(VideoStabilizationMode.Standard),
         )
       },
-    scaleType = if (aspectRatio.isFullScreen) ScaleType.FillCenter else ScaleType.FitCenter,
+    scaleType = ScaleType.FillCenter,
+    previewBackgroundColor = Color.Black,
     imageAnalyzer = imageAnalyzer,
     isImageAnalysisEnabled = cameraOption == CameraOption.QRCode,
     isPinchToZoomEnabled = usePinchToZoom,
     isFocusOnTapEnabled = useTapToFocus,
-    switchCameraContent = { bitmap ->
-      Image(
-        modifier = Modifier.cloudy(radius = 20),
-        bitmap = bitmap,
-        contentDescription = null,
-      )
-    },
   ) {
     BlinkPictureBox(lastPicture, cameraOption == CameraOption.Video)
     CameraInnerContent(

@@ -5,12 +5,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Text
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -31,13 +29,12 @@ fun OptionSection(
 ) {
   Row(
     modifier = modifier
-      .fillMaxWidth()
       .background(
-        color = Color.Black.copy(alpha = 0.35f),
+        color = Color.Black.copy(alpha = 0.45f),
         shape = RoundedCornerShape(24.dp),
       )
-      .padding(horizontal = 16.dp, vertical = 8.dp),
-    horizontalArrangement = Arrangement.Center,
+      .padding(horizontal = 12.dp, vertical = 6.dp),
+    horizontalArrangement = Arrangement.spacedBy(12.dp),
   ) {
     CameraOption.values().forEach { option ->
       if (!isVideoSupported && option == CameraOption.Video) return@forEach
@@ -49,14 +46,13 @@ fun OptionSection(
             interactionSource = remember { MutableInteractionSource() },
             indication = null,
             onClick = { onCameraOptionChanged(option) },
-          ).padding(vertical = 4.dp)
-          .width(80.dp),
+          )
+          .padding(vertical = 4.dp, horizontal = 4.dp),
         text = stringResource(id = option.titleRes).replaceFirstChar { it.uppercase() },
-        fontSize = 16.sp,
-        maxLines = 1,
-        fontWeight = FontWeight.Bold,
+        fontSize = 15.sp,
+        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
         textAlign = TextAlign.Center,
-        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White,
+        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.85f),
       )
     }
   }

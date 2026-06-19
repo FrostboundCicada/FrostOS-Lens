@@ -1,16 +1,15 @@
 package com.ujizin.sample.feature.camera.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -82,7 +81,7 @@ private fun GalleryButton(
   AsyncImage(
     modifier = Modifier
       .scale(animScale)
-      .size(48.dp)
+      .size(44.dp)
       .clip(CircleShape)
       .background(Color.White.copy(alpha = 0.12F), CircleShape)
       .clickable(onClick = onClick)
@@ -112,12 +111,11 @@ private fun SwitchButton(
   var clicked by remember { mutableStateOf(false) }
   val rotate by animateFloatAsState(
     targetValue = if (clicked) 360F else 1F,
-    animationSpec = tween(durationMillis = 500),
   )
   Button(
     modifier = Modifier
       .rotate(rotate)
-      .size(48.dp)
+      .size(44.dp)
       .background(Color.White.copy(alpha = 0.12F), CircleShape)
       .clip(CircleShape)
       .then(modifier),
@@ -127,7 +125,7 @@ private fun SwitchButton(
     },
   ) {
     Image(
-      modifier = Modifier.size(24.dp),
+      modifier = Modifier.size(22.dp),
       painter = painterResource(id = R.drawable.refresh),
       colorFilter = ColorFilter.tint(Color.White),
       contentDescription = stringResource(R.string.refresh),
@@ -136,7 +134,7 @@ private fun SwitchButton(
 }
 
 /**
- * 拍照/录制按钮 - 应用液态玻璃效果
+ * 拍照/录制按钮 - 使用液态玻璃效果
  */
 @Composable
 private fun PictureButton(
@@ -146,22 +144,20 @@ private fun PictureButton(
   onClick: () -> Unit,
 ) {
   val color by animateColorAsState(
-    targetValue = if (isVideo) Color.Red else Color.Transparent,
-    animationSpec = tween(durationMillis = 250),
+    targetValue = if (isRecording) Color.Red else Color.White.copy(alpha = 0.08F),
   )
-
-  val innerPadding by animateDpAsState(targetValue = if (isRecording) 24.dp else 8.dp)
+  val innerPadding by animateFloatAsState(targetValue = if (isRecording) 26F else 10F)
   val percentShape by animateIntAsState(targetValue = if (isRecording) 25 else 50)
-  Button(
+  Box(
     modifier = Modifier
-      .size(80.dp)
-      .cloudy(radius = 25)
+      .size(74.dp)
+      .cloudy(radius = 18)
       .liquidGlass(lensCenter = Offset(0f, 0f))
-      .border(BorderStroke(4.dp, Color.White), CircleShape)
-      .padding(innerPadding)
+      .border(BorderStroke(3.dp, Color.White), CircleShape)
+      .padding(innerPadding.dp)
       .background(color, RoundedCornerShape(percent = percentShape))
       .clip(CircleShape)
+      .clickable(onClick = onClick)
       .then(modifier),
-    onClick = onClick,
   )
 }
