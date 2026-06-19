@@ -92,7 +92,7 @@ jobs:
         run: ./gradlew clean build
 
       - name: Build Sample APK
-        run: cd samples && ../gradlew :sample-android:assembleDebug
+        run: cd samples && ./gradlew :sample-android:assembleDebug
 
       - name: Find APK
         run: cd samples && find . -name "*.apk"
