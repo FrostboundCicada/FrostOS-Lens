@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.camera.core.ImageProxy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -44,13 +45,17 @@ import com.ujizin.sample.extensions.noClickable
 import com.ujizin.sample.feature.camera.components.ActionBox
 import com.ujizin.sample.feature.camera.components.AspectRatioSelector
 import com.ujizin.sample.feature.camera.components.BlinkPictureBox
+import com.ujizin.sample.feature.camera.components.ExposureSlider
 import com.ujizin.sample.feature.camera.components.GridOverlay
+import com.ujizin.sample.feature.camera.components.LevelIndicator
 import com.ujizin.sample.feature.camera.components.SettingsBox
+import com.ujizin.sample.feature.camera.components.TimerOverlay
 import com.ujizin.sample.feature.camera.mapper.toFlash
 import com.ujizin.sample.feature.camera.mapper.toFlashMode
 import com.ujizin.sample.feature.camera.model.CameraOption
 import com.ujizin.sample.feature.camera.model.AspectRatioOption
 import com.ujizin.sample.feature.camera.model.Flash
+import com.ujizin.sample.feature.camera.model.TimerOption
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
 
@@ -78,10 +83,7 @@ fun CameraScreen(
         onGalleryClick = onGalleryClick,
         onConfigurationClick = onConfigurationClick,
         onRecording = {
-          viewModel.toggleRecording(
-            context.contentResolver,
-            cameraController,
-          )
+          viewModel.toggleRecording(context.contentResolver, cameraController)
         },
         onTakePicture = { viewModel.takePicture(cameraController) },
         isRecording = isRecording,
@@ -90,19 +92,11 @@ fun CameraScreen(
 
       LaunchedEffect(result.throwable) {
         if (result.throwable != null) {
-          Toast
-            .makeText(
-              context,
-              result.throwable.message,
-              Toast.LENGTH_SHORT,
-            ).show()
+          Toast.makeText(context, result.throwable.message, Toast.LENGTH_SHORT).show()
         }
       }
     }
-
-    CameraUiState.Initial -> {
-      Unit
-    }
+    CameraUiState.Initial -> Unit
   }
 }
 
@@ -124,11 +118,7 @@ fun CameraSection(
   var camSelector by rememberSaveable(stateSaver = CamSelector.Saver) {
     mutableStateOf(
       CamSelector(
-        camPosition =
-          when {
-            useFrontCamera -> CamSelector.Front.camPosition
-            else -> CamSelector.Back.camPosition
-          },
+        camPosition = if (useFrontCamera) CamSelector.Front.camPosition else CamSelector.Back.camPosition,
         camLensTypes = listOf(CamLensType.Wide),
       ),
     )
@@ -140,17 +130,22 @@ fun CameraSection(
   var cameraOption by rememberSaveable { mutableStateOf(CameraOption.Photo) }
   var aspectRatio by rememberSaveable { mutableStateOf(AspectRatioOption.Default) }
   var showGrid by rememberSaveable { mutableStateOf(false) }
+  var showLevel by rememberSaveable { mutableStateOf(true) }
+  var timerOption by rememberSaveable { mutableStateOf(TimerOption.Default) }
+  var timerActive by remember { mutableStateOf(false) }
+
   val flashMode by cameraSession.state.flashMode.collectAsStateWithLifecycle()
   val enableTorch by cameraSession.state.isTorchEnabled.collectAsStateWithLifecycle()
+  val exposureCompensation by cameraSession.state.exposureCompensation.collectAsStateWithLifecycle()
+  val evMin = cameraInfoState.minExposure
+  val evMax = cameraInfoState.maxExposure
+  val isExposureSupported = cameraInfoState.isExposureSupported
   val imageAnalyzer = cameraSession.rememberImageAnalyzer(analyze = onAnalyzeImage)
 
-  LaunchedEffect(zoomRatio) {
-    zoomHasChanged = true
-  }
+  LaunchedEffect(zoomRatio) { zoomHasChanged = true }
   val camDeviceState by rememberCameraDeviceState()
 
   LaunchedEffect(camDeviceState) {
-    val camDeviceState = camDeviceState
     if (camDeviceState is CameraDeviceState.Devices) {
       Log.d("YUJI", "devices: ${camDeviceState.cameraDevices}")
     }
@@ -161,15 +156,14 @@ fun CameraSection(
     cameraSession = cameraSession,
     camSelector = camSelector,
     captureMode = cameraOption.toCaptureMode(),
-    camFormat =
-      remember(aspectRatio) {
-        CamFormat(
-          AspectRatioConfig(aspectRatio.ratio),
-          ResolutionConfig.UltraHigh,
-          FrameRateConfig(60),
-          VideoStabilizationConfig(VideoStabilizationMode.Standard),
-        )
-      },
+    camFormat = remember(aspectRatio) {
+      CamFormat(
+        AspectRatioConfig(aspectRatio.ratio),
+        ResolutionConfig.UltraHigh,
+        FrameRateConfig(60),
+        VideoStabilizationConfig(VideoStabilizationMode.Standard),
+      )
+    },
     scaleType = if (aspectRatio.isFullScreen) ScaleType.FillCenter else ScaleType.FitCenter,
     previewBackgroundColor = Color.Black,
     imageAnalyzer = imageAnalyzer,
@@ -178,6 +172,15 @@ fun CameraSection(
     isFocusOnTapEnabled = useTapToFocus,
   ) {
     GridOverlay(visible = showGrid)
+    LevelIndicator(visible = showLevel)
+    TimerOverlay(
+      seconds = if (timerActive) timerOption.seconds else 0,
+      onFinished = {
+        timerActive = false
+        if (cameraOption == CameraOption.Video) onRecording()
+        else onTakePicture()
+      },
+    )
     BlinkPictureBox(lastPicture, cameraOption == CameraOption.Video)
     CameraInnerContent(
       Modifier.fillMaxSize(),
@@ -188,6 +191,11 @@ fun CameraSection(
       cameraOption = cameraOption,
       aspectRatio = aspectRatio,
       showGrid = showGrid,
+      timerOption = timerOption,
+      exposureCompensation = exposureCompensation,
+      evMin = evMin,
+      evMax = evMax,
+      isExposureSupported = isExposureSupported,
       hasFlashUnit = hasFlashUnit,
       qrCodeText = qrCodeText,
       isVideoSupported = true,
@@ -198,14 +206,26 @@ fun CameraSection(
         }
       },
       onShowGridChanged = { showGrid = it },
+      onTimerChanged = { timerOption = it },
+      onEvChanged = { cameraSession.controller.setExposureCompensation(it) },
       onZoomFinish = { zoomHasChanged = false },
       lastPicture = lastPicture,
-      onTakePicture = onTakePicture,
-      onRecording = onRecording,
-      onSwitchCamera = {
-        if (cameraSession.isStreaming) {
-          camSelector = camSelector.inverse
+      onTakePicture = {
+        if (timerOption.seconds > 0) {
+          timerActive = true
+        } else {
+          onTakePicture()
         }
+      },
+      onRecording = {
+        if (timerOption.seconds > 0) {
+          timerActive = true
+        } else {
+          onRecording()
+        }
+      },
+      onSwitchCamera = {
+        if (cameraSession.isStreaming) camSelector = camSelector.inverse
       },
       onCameraOptionChanged = { cameraOption = it },
       onAspectRatioChanged = { aspectRatio = it },
@@ -225,6 +245,11 @@ fun CameraInnerContent(
   cameraOption: CameraOption,
   aspectRatio: AspectRatioOption,
   showGrid: Boolean,
+  timerOption: TimerOption,
+  exposureCompensation: Float,
+  evMin: Float,
+  evMax: Float,
+  isExposureSupported: Boolean,
   hasFlashUnit: Boolean,
   qrCodeText: String?,
   lastPicture: File?,
@@ -232,6 +257,8 @@ fun CameraInnerContent(
   onGalleryClick: () -> Unit,
   onFlashModeChanged: (Flash) -> Unit,
   onShowGridChanged: (Boolean) -> Unit,
+  onTimerChanged: (TimerOption) -> Unit,
+  onEvChanged: (Float) -> Unit,
   onZoomFinish: () -> Unit,
   onRecording: () -> Unit,
   onTakePicture: () -> Unit,
@@ -255,11 +282,28 @@ fun CameraInnerContent(
       zoomHasChanged = zoomHasChanged,
       isRecording = isRecording,
       showGrid = showGrid,
+      timerOption = timerOption,
       onFlashModeChanged = onFlashModeChanged,
       onShowGridChanged = onShowGridChanged,
+      onTimerChanged = onTimerChanged,
       onConfigurationClick = onConfigurationClick,
       onZoomFinish = onZoomFinish,
     )
+    // 中间区域: 曝光补偿 (右侧竖排)
+    Row(
+      modifier = Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.End,
+    ) {
+      if (cameraOption != CameraOption.QRCode && isExposureSupported) {
+        ExposureSlider(
+          modifier = Modifier.padding(end = 12.dp),
+          currentEv = exposureCompensation,
+          minEv = evMin,
+          maxEv = evMax,
+          onEvChanged = onEvChanged,
+        )
+      }
+    }
     Column(
       modifier = Modifier.fillMaxWidth(),
       horizontalAlignment = Alignment.CenterHorizontally,

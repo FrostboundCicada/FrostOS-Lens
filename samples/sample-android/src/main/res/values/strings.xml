@@ -24,4 +24,10 @@
     <string name="aspect_ratio_16_9">16:9</string>
     <string name="aspect_ratio_fullscreen">Full</string>
     <string name="grid">Grid</string>
+    <string name="timer">Timer</string>
+    <string name="timer_off">Off</string>
+    <string name="timer_3s">3s</string>
+    <string name="timer_5s">5s</string>
+    <string name="timer_10s">10s</string>
+    <string name="exposure">EV</string>
 </resources>
