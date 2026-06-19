@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,7 +42,7 @@ fun SettingsBox(
     modifier = modifier
       .fillMaxWidth()
       .cloudy(radius = 20)
-      .liquidGlass(lensCenter = Alignment.TopCenter),
+      .liquidGlass(lensCenter = Offset(0f, 0f)),
   ) {
     FlashBox(
       modifier = Modifier.align(Alignment.TopStart),

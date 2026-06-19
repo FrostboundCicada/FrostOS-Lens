@@ -21,7 +21,7 @@ class MainActivity : MonetCompatActivity() {
     super.onCreate(savedInstanceState)
     AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
     setContent {
-      MonetTheme {
+      CamposerTheme {
         AppPermission {
           val navHost = rememberNavController()
           NavGraph(navHost)

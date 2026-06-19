@@ -11,6 +11,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -32,7 +33,7 @@ fun OptionSection(
     modifier = modifier
       .fillMaxWidth()
       .cloudy(radius = 16)
-      .liquidGlass(lensCenter = Alignment.Center),
+      .liquidGlass(lensCenter = Offset(0f, 0f)),
     horizontalArrangement = Arrangement.Center,
   ) {
     CameraOption.values().forEach { option ->
