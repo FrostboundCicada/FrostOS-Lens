@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'trae/**' ]
     paths:
       - 'camposer/**'
       - 'camposer-code-scanner/**'
@@ -21,6 +21,7 @@ on:
       - 'gradle.properties'
       - '*.gradle.kts'
       - 'samples/**'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
