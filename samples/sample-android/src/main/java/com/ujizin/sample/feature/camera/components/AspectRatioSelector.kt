@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,8 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.ujizin.sample.feature.camera.model.AspectRatioOption
 
 /**
- * 照片/视频比例选择器
- * 1:1, 4:3, 16:9, Full
+ * OPPO 风格比例选择器
  */
 @Composable
 fun AspectRatioSelector(
@@ -36,56 +35,43 @@ fun AspectRatioSelector(
   Row(
     modifier = modifier
       .background(
-        color = Color.Black.copy(alpha = 0.45f),
-        shape = CircleShape,
+        color = Color.Black.copy(alpha = 0.4f),
+        shape = RoundedCornerShape(50),
       )
-      .padding(horizontal = 10.dp, vertical = 4.dp),
-    horizontalArrangement = Arrangement.spacedBy(2.dp),
+      .padding(3.dp),
+    horizontalArrangement = Arrangement.spacedBy(0.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     AspectRatioOption.values().forEach { option ->
       val isSelected = currentRatio == option
-      AspectRatioButton(
-        option = option,
-        isSelected = isSelected,
-        onClick = { onRatioChanged(option) },
-      )
+      val bgColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+      } else {
+        Color.Transparent
+      }
+      val textColor = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f)
+
+      Box(
+        modifier = Modifier
+          .clip(RoundedCornerShape(50))
+          .background(bgColor)
+          .clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = { onRatioChanged(option) },
+          )
+          .padding(horizontal = 10.dp, vertical = 5.dp),
+        contentAlignment = Alignment.Center,
+      ) {
+        Text(
+          text = stringResource(id = option.titleRes),
+          fontSize = 12.sp,
+          fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+          textAlign = TextAlign.Center,
+          color = textColor,
+          maxLines = 1,
+        )
+      }
     }
-  }
-}
-
-@Composable
-private fun AspectRatioButton(
-  option: AspectRatioOption,
-  isSelected: Boolean,
-  onClick: () -> Unit,
-) {
-  val backgroundColor = if (isSelected) {
-    MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
-  } else {
-    Color.Transparent
-  }
-  val textColor = if (isSelected) Color.White else Color.White.copy(alpha = 0.75f)
-
-  Box(
-    modifier = Modifier
-      .clip(CircleShape)
-      .background(backgroundColor)
-      .clickable(
-        interactionSource = remember { MutableInteractionSource() },
-        indication = null,
-        onClick = onClick,
-      )
-      .padding(horizontal = 8.dp, vertical = 4.dp),
-    contentAlignment = Alignment.Center,
-  ) {
-    Text(
-      text = stringResource(id = option.titleRes),
-      fontSize = 12.sp,
-      fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-      textAlign = TextAlign.Center,
-      color = textColor,
-      maxLines = 1,
-    )
   }
 }

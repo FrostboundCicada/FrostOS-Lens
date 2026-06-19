@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ujizin.sample.feature.camera.model.CameraOption
@@ -25,15 +26,15 @@ fun ActionBox(
 ) {
   Column(
     modifier = modifier,
+    horizontalAlignment = Alignment.CenterHorizontally,
   ) {
     QrCodeBox(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(16.dp),
+        .padding(horizontal = 16.dp, vertical = 8.dp),
       qrCodeText = qrCodeText,
     )
     OptionSection(
-      modifier = Modifier.fillMaxWidth(),
       isVideoSupported = isVideoSupported,
       currentCameraOption = cameraOption,
       onCameraOptionChanged = onCameraOptionChanged,
@@ -41,7 +42,7 @@ fun ActionBox(
     PictureActions(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(top = 24.dp, bottom = 32.dp),
+        .padding(top = 20.dp),
       isVideo = cameraOption == CameraOption.Video,
       lastPicture = lastPicture,
       isRecording = isRecording,

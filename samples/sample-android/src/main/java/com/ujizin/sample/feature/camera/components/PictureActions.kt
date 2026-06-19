@@ -2,7 +2,7 @@ package com.ujizin.sample.feature.camera.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -11,10 +11,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,7 +59,7 @@ fun PictureActions(
     verticalAlignment = Alignment.CenterVertically,
   ) {
     GalleryButton(lastPicture, onClick = onGalleryClick)
-    PictureButton(
+    OPPOShutterButton(
       isVideo = isVideo,
       isRecording = isRecording,
       onClick = { if (isVideo) onRecording() else onTakePicture() },
@@ -77,25 +75,31 @@ private fun GalleryButton(
   onClick: () -> Unit,
 ) {
   var shouldAnimate by remember { mutableStateOf(false) }
-  val animScale by animateFloatAsState(targetValue = if (shouldAnimate) 1.25F else 1F)
-  AsyncImage(
+  val animScale by animateFloatAsState(targetValue = if (shouldAnimate) 1.2F else 1F)
+  Box(
     modifier = Modifier
       .scale(animScale)
-      .size(44.dp)
+      .size(48.dp)
       .clip(CircleShape)
-      .background(Color.White.copy(alpha = 0.12F), CircleShape)
+      .background(Color.White.copy(alpha = 0.15F), CircleShape)
       .clickable(onClick = onClick)
       .then(modifier),
-    contentScale = ContentScale.Crop,
-    model = ImageRequest
-      .Builder(LocalContext.current)
-      .data(lastPicture)
-      .decoderFactory(VideoFrameDecoder.Factory())
-      .videoFrameMillis(1)
-      .build(),
-    contentDescription = stringResource(R.string.gallery),
-  )
-
+    contentAlignment = Alignment.Center,
+  ) {
+    AsyncImage(
+      modifier = Modifier
+        .size(44.dp)
+        .clip(CircleShape),
+      contentScale = ContentScale.Crop,
+      model = ImageRequest
+        .Builder(LocalContext.current)
+        .data(lastPicture)
+        .decoderFactory(VideoFrameDecoder.Factory())
+        .videoFrameMillis(1)
+        .build(),
+      contentDescription = stringResource(R.string.gallery),
+    )
+  }
   LaunchedEffect(lastPicture) {
     shouldAnimate = true
     delay(50)
@@ -111,21 +115,25 @@ private fun SwitchButton(
   var clicked by remember { mutableStateOf(false) }
   val rotate by animateFloatAsState(
     targetValue = if (clicked) 360F else 1F,
+    animationSpec = tween(durationMillis = 400),
   )
-  Button(
+  Box(
     modifier = Modifier
       .rotate(rotate)
-      .size(44.dp)
-      .background(Color.White.copy(alpha = 0.12F), CircleShape)
+      .size(48.dp)
       .clip(CircleShape)
+      .background(Color.White.copy(alpha = 0.15F), CircleShape)
+      .clickable(
+        onClick = {
+          clicked = !clicked
+          onClick()
+        },
+      )
       .then(modifier),
-    onClick = {
-      clicked = !clicked
-      onClick()
-    },
+    contentAlignment = Alignment.Center,
   ) {
     Image(
-      modifier = Modifier.size(22.dp),
+      modifier = Modifier.size(24.dp),
       painter = painterResource(id = R.drawable.refresh),
       colorFilter = ColorFilter.tint(Color.White),
       contentDescription = stringResource(R.string.refresh),
@@ -134,30 +142,47 @@ private fun SwitchButton(
 }
 
 /**
- * 拍照/录制按钮 - 使用液态玻璃效果
+ * OPPO 风格快门按钮
+ * 外层白环 (液态玻璃效果) + 内层实心圆
  */
 @Composable
-private fun PictureButton(
+private fun OPPOShutterButton(
   modifier: Modifier = Modifier,
   isVideo: Boolean,
   isRecording: Boolean,
   onClick: () -> Unit,
 ) {
-  val color by animateColorAsState(
-    targetValue = if (isRecording) Color.Red else Color.White.copy(alpha = 0.08F),
+  // 外环尺寸
+  val outerSize = 80.dp
+  // 内圆尺寸
+  val innerSize = if (isRecording) 32.dp else 56.dp
+  // 内圆颜色
+  val innerColor by animateColorAsState(
+    targetValue = if (isRecording) Color.Red else Color.White.copy(alpha = 0.9F),
+    animationSpec = tween(durationMillis = 250),
   )
-  val innerPadding by animateFloatAsState(targetValue = if (isRecording) 26F else 10F)
-  val percentShape by animateIntAsState(targetValue = if (isRecording) 25 else 50)
+
   Box(
-    modifier = Modifier
-      .size(74.dp)
-      .cloudy(radius = 18)
-      .liquidGlass(lensCenter = Offset(0f, 0f))
-      .border(BorderStroke(3.dp, Color.White), CircleShape)
-      .padding(innerPadding.dp)
-      .background(color, RoundedCornerShape(percent = percentShape))
-      .clip(CircleShape)
-      .clickable(onClick = onClick)
-      .then(modifier),
-  )
+    modifier = modifier.size(outerSize),
+    contentAlignment = Alignment.Center,
+  ) {
+    // 外层白环 - 液态玻璃效果
+    Box(
+      modifier = Modifier
+        .size(outerSize)
+        .clip(CircleShape)
+        .cloudy(radius = 20)
+        .liquidGlass(lensCenter = Offset(0f, 0f))
+        .background(Color.White.copy(alpha = 0.12F), CircleShape)
+        .border(BorderStroke(4.dp, Color.White.copy(alpha = 0.9F)), CircleShape)
+        .clickable(onClick = onClick),
+    )
+    // 内层实心圆
+    Box(
+      modifier = Modifier
+        .size(innerSize)
+        .clip(CircleShape)
+        .background(innerColor, CircleShape),
+    )
+  }
 }

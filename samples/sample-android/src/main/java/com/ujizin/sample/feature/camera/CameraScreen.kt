@@ -3,14 +3,11 @@ package com.ujizin.sample.feature.camera
 import android.util.Log
 import android.widget.Toast
 import androidx.camera.core.ImageProxy
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -18,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -46,6 +44,7 @@ import com.ujizin.sample.extensions.noClickable
 import com.ujizin.sample.feature.camera.components.ActionBox
 import com.ujizin.sample.feature.camera.components.AspectRatioSelector
 import com.ujizin.sample.feature.camera.components.BlinkPictureBox
+import com.ujizin.sample.feature.camera.components.GridOverlay
 import com.ujizin.sample.feature.camera.components.SettingsBox
 import com.ujizin.sample.feature.camera.mapper.toFlash
 import com.ujizin.sample.feature.camera.mapper.toFlashMode
@@ -140,6 +139,7 @@ fun CameraSection(
   val hasFlashUnit = cameraInfoState.isFlashSupported
   var cameraOption by rememberSaveable { mutableStateOf(CameraOption.Photo) }
   var aspectRatio by rememberSaveable { mutableStateOf(AspectRatioOption.Default) }
+  var showGrid by rememberSaveable { mutableStateOf(false) }
   val flashMode by cameraSession.state.flashMode.collectAsStateWithLifecycle()
   val enableTorch by cameraSession.state.isTorchEnabled.collectAsStateWithLifecycle()
   val imageAnalyzer = cameraSession.rememberImageAnalyzer(analyze = onAnalyzeImage)
@@ -153,7 +153,6 @@ fun CameraSection(
     val camDeviceState = camDeviceState
     if (camDeviceState is CameraDeviceState.Devices) {
       Log.d("YUJI", "devices: ${camDeviceState.cameraDevices}")
-//      camSelector = CamSelector(camDeviceState.cameraDevices.first())
     }
   }
 
@@ -171,13 +170,14 @@ fun CameraSection(
           VideoStabilizationConfig(VideoStabilizationMode.Standard),
         )
       },
-    scaleType = ScaleType.FillCenter,
+    scaleType = if (aspectRatio.isFullScreen) ScaleType.FillCenter else ScaleType.FitCenter,
     previewBackgroundColor = Color.Black,
     imageAnalyzer = imageAnalyzer,
     isImageAnalysisEnabled = cameraOption == CameraOption.QRCode,
     isPinchToZoomEnabled = usePinchToZoom,
     isFocusOnTapEnabled = useTapToFocus,
   ) {
+    GridOverlay(visible = showGrid)
     BlinkPictureBox(lastPicture, cameraOption == CameraOption.Video)
     CameraInnerContent(
       Modifier.fillMaxSize(),
@@ -187,6 +187,7 @@ fun CameraSection(
       isRecording = isRecording,
       cameraOption = cameraOption,
       aspectRatio = aspectRatio,
+      showGrid = showGrid,
       hasFlashUnit = hasFlashUnit,
       qrCodeText = qrCodeText,
       isVideoSupported = true,
@@ -196,6 +197,7 @@ fun CameraSection(
           setFlashMode(flash.toFlashMode())
         }
       },
+      onShowGridChanged = { showGrid = it },
       onZoomFinish = { zoomHasChanged = false },
       lastPicture = lastPicture,
       onTakePicture = onTakePicture,
@@ -222,12 +224,14 @@ fun CameraInnerContent(
   isRecording: Boolean,
   cameraOption: CameraOption,
   aspectRatio: AspectRatioOption,
+  showGrid: Boolean,
   hasFlashUnit: Boolean,
   qrCodeText: String?,
   lastPicture: File?,
   isVideoSupported: Boolean,
   onGalleryClick: () -> Unit,
   onFlashModeChanged: (Flash) -> Unit,
+  onShowGridChanged: (Boolean) -> Unit,
   onZoomFinish: () -> Unit,
   onRecording: () -> Unit,
   onTakePicture: () -> Unit,
@@ -241,38 +245,37 @@ fun CameraInnerContent(
     verticalArrangement = Arrangement.SpaceBetween,
   ) {
     SettingsBox(
-      modifier =
-        Modifier
-          .fillMaxWidth()
-          .padding(top = 8.dp, bottom = 8.dp, start = 24.dp, end = 24.dp),
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(top = 8.dp, start = 16.dp, end = 16.dp),
       flashMode = flashMode,
       zoomRatio = zoomRatio,
       isVideo = cameraOption == CameraOption.Video,
       hasFlashUnit = hasFlashUnit,
       zoomHasChanged = zoomHasChanged,
       isRecording = isRecording,
+      showGrid = showGrid,
       onFlashModeChanged = onFlashModeChanged,
+      onShowGridChanged = onShowGridChanged,
       onConfigurationClick = onConfigurationClick,
       onZoomFinish = onZoomFinish,
     )
     Column(
       modifier = Modifier.fillMaxWidth(),
-      horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+      horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-      // 比例选择器 - 仅在拍照模式下显示
       if (cameraOption == CameraOption.Photo) {
         AspectRatioSelector(
-          modifier = Modifier.padding(bottom = 8.dp),
+          modifier = Modifier.padding(bottom = 12.dp),
           currentRatio = aspectRatio,
           onRatioChanged = onAspectRatioChanged,
         )
       }
       ActionBox(
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .noClickable()
-            .padding(bottom = 32.dp, top = 16.dp),
+        modifier = Modifier
+          .fillMaxWidth()
+          .noClickable()
+          .padding(bottom = 32.dp),
         lastPicture = lastPicture,
         onGalleryClick = onGalleryClick,
         cameraOption = cameraOption,
