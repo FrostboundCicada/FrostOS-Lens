@@ -52,7 +52,7 @@ compose-navigation-android = { module = "androidx.navigation:navigation-compose"
 compose-lifecycle = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 
 compose-material3-android = { module = "androidx.compose.material3:material3" }
-compose-material3-icons = { module = "androidx.compose.material3:material3-icons-extended" }
+compose-material3-icons = { module = "androidx.compose.material:material-icons-extended" }
 
 exoplayer = { module = "com.google.android.exoplayer:exoplayer", version.ref = "exoplayer" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
