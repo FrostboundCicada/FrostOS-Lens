@@ -5,22 +5,22 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.skydoves.cloudy.cloudy
-import com.skydoves.cloudy.liquidGlass
 import com.ujizin.sample.extensions.roundTo
 import com.ujizin.sample.feature.camera.model.Flash
 import kotlinx.coroutines.delay
@@ -41,8 +41,11 @@ fun SettingsBox(
   Box(
     modifier = modifier
       .fillMaxWidth()
-      .cloudy(radius = 20)
-      .liquidGlass(lensCenter = Offset(0f, 0f)),
+      .background(
+        color = Color.Black.copy(alpha = 0.3f),
+        shape = RoundedCornerShape(24.dp),
+      )
+      .padding(horizontal = 16.dp, vertical = 12.dp),
   ) {
     FlashBox(
       modifier = Modifier.align(Alignment.TopStart),
@@ -56,7 +59,7 @@ fun SettingsBox(
       horizontalAlignment = Alignment.CenterHorizontally,
     ) {
       VideoBox(
-        modifier = Modifier.padding(top = 16.dp),
+        modifier = Modifier.padding(top = 4.dp),
         isRecording = isRecording,
       )
       AnimatedVisibility(

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,20 +28,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.skydoves.cloudy.cloudy
-import com.skydoves.cloudy.liquidGlass
 import coil.decode.VideoFrameDecoder
 import coil.request.ImageRequest
 import coil.request.videoFrameMillis
+import com.skydoves.cloudy.cloudy
+import com.skydoves.cloudy.liquidGlass
 import com.ujizin.sample.R
 import kotlinx.coroutines.delay
 import java.io.File
@@ -58,8 +59,7 @@ fun PictureActions(
 ) {
   Row(
     modifier = modifier
-      .cloudy(radius = 20)
-      .liquidGlass(lensCenter = Offset(0f, 0f)),
+      .padding(horizontal = 16.dp, vertical = 12.dp),
     horizontalArrangement = Arrangement.SpaceEvenly,
     verticalAlignment = Alignment.CenterVertically,
   ) {
@@ -83,9 +83,9 @@ fun GalleryButton(
   AsyncImage(
     modifier = Modifier
       .scale(animScale)
-      .size(48.dp)
+      .size(52.dp)
       .clip(CircleShape)
-      .background(Color.White.copy(alpha = 0.12F), CircleShape)
+      .background(Color.White.copy(alpha = 0.18F), CircleShape)
       .clickable(onClick = onClick),
     contentScale = ContentScale.Crop,
     model = ImageRequest
@@ -117,8 +117,8 @@ private fun SwitchButton(
   Button(
     modifier = Modifier
       .rotate(rotate)
-      .size(48.dp)
-      .background(Color.White.copy(alpha = 0.12F), CircleShape)
+      .size(52.dp)
+      .background(Color.White.copy(alpha = 0.18F), CircleShape)
       .clip(CircleShape)
       .then(modifier),
     onClick = {
@@ -127,7 +127,7 @@ private fun SwitchButton(
     },
   ) {
     Image(
-      modifier = Modifier.size(24.dp),
+      modifier = Modifier.size(26.dp),
       painter = painterResource(id = R.drawable.refresh),
       colorFilter = ColorFilter.tint(Color.White),
       contentDescription = stringResource(R.string.refresh),
@@ -135,6 +135,9 @@ private fun SwitchButton(
   }
 }
 
+/**
+ * 拍照/录制按钮 - 应用液态玻璃效果
+ */
 @Composable
 private fun PictureButton(
   modifier: Modifier = Modifier,
@@ -147,11 +150,13 @@ private fun PictureButton(
     animationSpec = tween(durationMillis = 250),
   )
 
-  val innerPadding by animateDpAsState(targetValue = if (isRecording) 24.dp else 8.dp)
+  val innerPadding by animateDpAsState(targetValue = if (isRecording) 24.dp else 10.dp)
   val percentShape by animateIntAsState(targetValue = if (isRecording) 25 else 50)
   Button(
     modifier = Modifier
-      .size(80.dp)
+      .size(84.dp)
+      .cloudy(radius = 25)
+      .liquidGlass(lensCenter = Offset(0f, 0f))
       .border(BorderStroke(4.dp, Color.White), CircleShape)
       .padding(innerPadding)
       .background(color, RoundedCornerShape(percentShape))
@@ -159,4 +164,21 @@ private fun PictureButton(
       .then(modifier),
     onClick = onClick,
   )
+}
+
+/**
+ * 简单的圆形按钮组件 - 兼容原代码
+ */
+@Composable
+private fun Button(
+  modifier: Modifier = Modifier,
+  onClick: () -> Unit,
+  content: @Composable () -> Unit = {},
+) {
+  androidx.compose.foundation.layout.Box(
+    modifier = modifier.clickable(onClick = onClick),
+    contentAlignment = Alignment.Center,
+  ) {
+    content()
+  }
 }

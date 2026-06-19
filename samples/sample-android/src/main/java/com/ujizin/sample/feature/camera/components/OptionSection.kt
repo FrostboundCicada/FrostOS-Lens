@@ -1,5 +1,6 @@
 package com.ujizin.sample.feature.camera.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -7,19 +8,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.skydoves.cloudy.cloudy
-import com.skydoves.cloudy.liquidGlass
 import com.ujizin.sample.feature.camera.model.CameraOption
 
 @Composable
@@ -32,13 +32,17 @@ fun OptionSection(
   Row(
     modifier = modifier
       .fillMaxWidth()
-      .cloudy(radius = 16)
-      .liquidGlass(lensCenter = Offset(0f, 0f)),
+      .background(
+        color = Color.Black.copy(alpha = 0.35f),
+        shape = RoundedCornerShape(24.dp),
+      )
+      .padding(horizontal = 16.dp, vertical = 8.dp),
     horizontalArrangement = Arrangement.Center,
   ) {
     CameraOption.values().forEach { option ->
       if (!isVideoSupported && option == CameraOption.Video) return@forEach
 
+      val isSelected = currentCameraOption == option
       Text(
         modifier = Modifier
           .clickable(
@@ -52,7 +56,7 @@ fun OptionSection(
         maxLines = 1,
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center,
-        color = if (currentCameraOption == option) Color.Yellow else Color.White,
+        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White,
       )
     }
   }
