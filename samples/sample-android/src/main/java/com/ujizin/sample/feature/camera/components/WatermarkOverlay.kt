@@ -3,14 +3,18 @@ package com.ujizin.sample.feature.camera.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -24,6 +28,7 @@ import java.util.Locale
 
 /**
  * 水印覆盖层 — 在预览上显示自定义水印
+ * 与 WatermarkUtil 保存到图片中的水印外观一致
  */
 @Composable
 fun WatermarkOverlay(
@@ -41,9 +46,9 @@ fun WatermarkOverlay(
 
   val padding = when (config.position) {
     WatermarkPosition.BottomLeft, WatermarkPosition.BottomRight ->
-      Modifier.padding(bottom = 120.dp, start = 20.dp, end = 20.dp)
+      Modifier.padding(bottom = 120.dp, start = 16.dp, end = 16.dp)
     WatermarkPosition.TopLeft, WatermarkPosition.TopRight ->
-      Modifier.padding(top = 60.dp, start = 20.dp, end = 20.dp)
+      Modifier.padding(top = 60.dp, start = 16.dp, end = 16.dp)
   }
 
   Box(
@@ -62,20 +67,41 @@ fun WatermarkOverlay(
 
     if (lines.isEmpty()) return@Box
 
-    Column(
+    Row(
       modifier = Modifier
-        .clip(RoundedCornerShape(8.dp))
-        .background(Color.Black.copy(alpha = 0.35f))
-        .padding(horizontal = 10.dp, vertical = 6.dp),
-    ) {
-      lines.forEachIndexed { index, line ->
-        Text(
-          text = line,
-          fontSize = config.fontSize.sp,
-          fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal,
-          color = Color.White.copy(alpha = 0.9f),
-          textAlign = TextAlign.Start,
+        .clip(RoundedCornerShape(6.dp))
+        .background(
+          Brush.verticalGradient(
+            listOf(
+              Color.Black.copy(alpha = 0.4f),
+              Color.Black.copy(alpha = 0.55f),
+            ),
+          ),
         )
+        .padding(horizontal = 10.dp, vertical = 6.dp),
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      // 左侧强调条
+      Box(
+        modifier = Modifier
+          .width(2.dp)
+          .height(28.dp)
+          .clip(RoundedCornerShape(1.dp))
+          .background(Color.White.copy(alpha = 0.8f)),
+      )
+
+      Column(
+        modifier = Modifier.padding(start = 8.dp),
+      ) {
+        lines.forEachIndexed { index, line ->
+          Text(
+            text = line,
+            fontSize = if (index == 0) config.fontSize.sp else (config.fontSize * 0.7f).sp,
+            fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal,
+            color = Color.White.copy(alpha = if (index == 0) 0.95f else 0.75f),
+            textAlign = TextAlign.Start,
+          )
+        }
       }
     }
   }

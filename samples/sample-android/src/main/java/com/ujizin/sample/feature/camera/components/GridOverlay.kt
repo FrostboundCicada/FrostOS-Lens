@@ -51,9 +51,9 @@ fun GridOverlay(
         }
       }
 
-      val lineColor = Color.White.copy(alpha = 0.5f)
-      val dash = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-      val strokeWidth = 1.5f
+      val lineColor = Color.White.copy(alpha = 0.65f)
+      val dash = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
+      val strokeWidth = 2.5f
 
       // 两条水平线 (1/3, 2/3)
       for (i in 1..2) {
@@ -80,10 +80,10 @@ fun GridOverlay(
 
       // 绘制边框，标示图片区域
       drawRect(
-        color = Color.White.copy(alpha = 0.15f),
+        color = Color.White.copy(alpha = 0.25f),
         topLeft = Offset(offsetX, offsetY),
         size = androidx.compose.ui.geometry.Size(gridW, gridH),
-        style = Stroke(width = 1f),
+        style = Stroke(width = 1.5f),
       )
     }
   }

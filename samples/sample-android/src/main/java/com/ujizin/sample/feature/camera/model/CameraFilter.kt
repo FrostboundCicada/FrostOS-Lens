@@ -1,10 +1,11 @@
 package com.ujizin.sample.feature.camera.model
 
-import androidx.compose.ui.graphics.ColorMatrix
+import android.graphics.ColorMatrix
 
 /**
  * 相机滤镜定义
- * 使用 ColorMatrix 实现各种滤镜效果
+ * 使用 Android ColorMatrix 实现各种滤镜效果
+ * 通过 RenderEffect.createColorFilterEffect 应用到预览
  */
 enum class CameraFilter(
   val displayName: String,

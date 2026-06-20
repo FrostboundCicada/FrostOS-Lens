@@ -82,7 +82,11 @@ class CameraViewModel(
         takePicture { result ->
           when (result) {
             is CaptureResult.Error -> onError(result.throwable)
-            is CaptureResult.Success -> saveWatermarkedImage(result.data, watermarkConfig)
+            is CaptureResult.Success -> {
+              viewModelScope.launch {
+                saveWatermarkedImage(result.data, watermarkConfig)
+              }
+            }
           }
         }
       } else {
