@@ -6,6 +6,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.view.Surface
+import android.view.WindowManager
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -20,14 +21,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import kotlin.math.abs
-import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 
 /**
  * 水平仪 / 平衡仪
- * 根据屏幕旋转方向自动适配，支持竖屏、横屏、反向竖屏、反向横屏
- * 倾斜 < 1.5° 时变绿，表示水平
+ * 使用 ROTATION_VECTOR 传感器获取设备在世界坐标系中的姿态，
+ * 再根据屏幕旋转方向映射到正确的轴，支持所有方向。
+ * 倾斜 < 1.5° 时变绿，表示水平。
  */
 @Composable
 fun LevelIndicator(
@@ -40,36 +41,61 @@ fun LevelIndicator(
 
   DisposableEffect(context) {
     val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
+    val rotationVectorSensor =
+      sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
+        ?: sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+
     val listener = object : SensorEventListener {
       override fun onSensorChanged(event: SensorEvent?) {
         event ?: return
-        val x = event.values[0]
-        val y = event.values[1]
-        val z = event.values[2]
+        val rotation = wm.defaultDisplay.rotation
 
-        // 根据屏幕旋转方向选择正确的轴来计算倾斜角
-        val displayRotation = context.display?.rotation ?: Surface.ROTATION_0
-        rollDegrees = when (displayRotation) {
-          // 竖屏 (正常): 绕 Y 轴旋转，使用 atan2(x, z)
-          Surface.ROTATION_0 -> Math.toDegrees(atan2(x.toDouble(), z.toDouble())).toFloat()
-          // 横屏 (左转90°): 绕 X 轴旋转，使用 atan2(y, z)
-          Surface.ROTATION_90 -> Math.toDegrees(atan2(y.toDouble(), z.toDouble())).toFloat()
-          // 反向竖屏 (180°): 绕 Y 轴旋转，但 X 轴反向
-          Surface.ROTATION_180 -> Math.toDegrees(atan2((-x).toDouble(), z.toDouble())).toFloat()
-          // 反向横屏 (右转90°): 绕 X 轴旋转，但 Y 轴反向
-          Surface.ROTATION_270 -> Math.toDegrees(atan2((-y).toDouble(), z.toDouble())).toFloat()
-          else -> Math.toDegrees(atan2(x.toDouble(), z.toDouble())).toFloat()
+        if (rotationVectorSensor != null && event.sensor.type == rotationVectorSensor.type) {
+          // 使用旋转矢量传感器，精度高，所有方向都可靠
+          val rotationMatrix = FloatArray(9)
+          SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+          val orientation = FloatArray(3)
+          SensorManager.getOrientation(rotationMatrix, orientation)
+          // orientation[2] = roll (绕 Y 轴), orientation[1] = pitch (绕 X 轴)
+          rollDegrees = Math.toDegrees(
+            when (rotation) {
+              Surface.ROTATION_0 -> orientation[2].toDouble()   // 竖屏：roll
+              Surface.ROTATION_90 -> orientation[1].toDouble()  // 横屏左：pitch
+              Surface.ROTATION_180 -> (-orientation[2]).toDouble()
+              Surface.ROTATION_270 -> (-orientation[1]).toDouble()
+              else -> orientation[2].toDouble()
+            },
+          ).toFloat()
+        } else {
+          // 回退：加速度计（某些设备没有旋转矢量传感器）
+          val x = event.values[0]
+          val y = event.values[1]
+          val z = event.values[2]
+          rollDegrees = Math.toDegrees(
+            when (rotation) {
+              Surface.ROTATION_0 -> kotlin.math.atan2(x.toDouble(), z.toDouble())
+              Surface.ROTATION_90 -> kotlin.math.atan2(y.toDouble(), z.toDouble())
+              Surface.ROTATION_180 -> kotlin.math.atan2((-x).toDouble(), z.toDouble())
+              Surface.ROTATION_270 -> kotlin.math.atan2((-y).toDouble(), z.toDouble())
+              else -> kotlin.math.atan2(x.toDouble(), z.toDouble())
+            },
+          ).toFloat()
         }
       }
+
       override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
     }
-    sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_GAME)
+
+    val sensorToUse = rotationVectorSensor
+      ?: sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    sensorManager.registerListener(listener, sensorToUse, SensorManager.SENSOR_DELAY_GAME)
     onDispose { sensorManager.unregisterListener(listener) }
   }
 
   val isLevel = abs(rollDegrees) < 1.5f
-  val lineColor = if (isLevel) Color.Green.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.5f)
+  val lineColor = if (isLevel) Color.Green.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.55f)
 
   Canvas(modifier = modifier.fillMaxSize()) {
     val cx = size.width / 2f
@@ -98,15 +124,20 @@ fun LevelIndicator(
       strokeWidth = 2.5f,
     )
 
-    // 两端小圆点
+    // 两端圆点
     val dotRadius = 3f
     drawCircle(color = lineColor, radius = dotRadius, center = Offset(cx - dx, cy - dy))
     drawCircle(color = lineColor, radius = dotRadius, center = Offset(cx + dx, cy + dy))
 
-    // 中心圆点 - 水平时显示
+    // 水平时中间绿点
     if (isLevel) {
       drawCircle(color = Color.Green, radius = 5f, center = Offset(cx, cy))
-      drawCircle(color = Color.Green.copy(alpha = 0.3f), radius = 12f, center = Offset(cx, cy), style = Stroke(width = 1.5f))
+      drawCircle(
+        color = Color.Green.copy(alpha = 0.3f),
+        radius = 12f,
+        center = Offset(cx, cy),
+        style = Stroke(width = 1.5f),
+      )
     }
   }
 }

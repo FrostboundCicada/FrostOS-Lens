@@ -3,7 +3,6 @@ package com.ujizin.sample.feature.camera.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,11 +22,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -37,8 +40,6 @@ import coil.compose.AsyncImage
 import coil.decode.VideoFrameDecoder
 import coil.request.ImageRequest
 import coil.request.videoFrameMillis
-import com.skydoves.cloudy.cloudy
-import com.skydoves.cloudy.liquidGlass
 import com.ujizin.sample.R
 import kotlinx.coroutines.delay
 import java.io.File
@@ -60,7 +61,7 @@ fun PictureActions(
     verticalAlignment = Alignment.CenterVertically,
   ) {
     GalleryButton(lastPicture, onClick = onGalleryClick)
-    OPPOShutterButton(
+    ShutterButton(
       isVideo = isVideo,
       isRecording = isRecording,
       onClick = { if (isVideo) onRecording() else onTakePicture() },
@@ -145,12 +146,12 @@ private fun SwitchButton(
 }
 
 /**
- * OPPO 风格快门按钮 — 液态玻璃 + 莫奈取色
- * 外圈：半透明背景 + Cloudy 模糊 + liquidGlass 畸变效果 + 白色边框
- * 内圈：实心圆，录像时变红
+ * 快门按钮 — 手绘玻璃质感圆环
+ * 外圈：半透明背景 + 顶部高光弧线 + 白色边框
+ * 内圈：实心圆，录像时缩小变红，使用莫奈主色
  */
 @Composable
-private fun OPPOShutterButton(
+private fun ShutterButton(
   modifier: Modifier = Modifier,
   isVideo: Boolean,
   isRecording: Boolean,
@@ -159,30 +160,39 @@ private fun OPPOShutterButton(
   val outerSize = 80.dp
   val innerSize = if (isRecording) 32.dp else 56.dp
 
-  // 内圆颜色：录像红色，普通用莫奈主色
   val innerColor by animateColorAsState(
     targetValue = if (isRecording) Color.Red
     else MaterialTheme.colorScheme.primaryContainer,
     animationSpec = tween(durationMillis = 250),
   )
 
-  // 外圈背景色：使用莫奈 surface 色，半透明
-  val ringBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f)
-
   Box(
     modifier = modifier.size(outerSize),
     contentAlignment = Alignment.Center,
   ) {
-    // 外圈 — 液态玻璃效果
-    // 注意：background 必须在 cloudy/liquidGlass 之前，否则会被覆盖
+    // 外圈 — 玻璃质感
     Box(
       modifier = Modifier
         .size(outerSize)
         .clip(CircleShape)
-        .background(ringBg, CircleShape)
-        .cloudy(radius = 20)
-        .liquidGlass(lensCenter = Offset(0f, 0f))
-        .border(BorderStroke(4.dp, Color.White.copy(alpha = 0.9f)), CircleShape)
+        .background(Color.White.copy(alpha = 0.16f), CircleShape)
+        .drawWithContent {
+          drawContent()
+          // 顶部高光弧线 — 模拟玻璃反光
+          val strokeW = size.width * 0.045f
+          val arcR = size.width / 2f - strokeW / 2f
+          val margin = strokeW / 2f
+          drawArc(
+            color = Color.White.copy(alpha = 0.5f),
+            startAngle = 210f,
+            sweepAngle = 120f,
+            useCenter = false,
+            topLeft = Offset(margin, margin),
+            size = Size(arcR * 2f, arcR * 2f),
+            style = Stroke(width = strokeW, cap = StrokeCap.Round),
+          )
+        }
+        .border(3.dp, Color.White.copy(alpha = 0.9f), CircleShape)
         .clickable(onClick = onClick),
     )
     // 内圈实心圆
