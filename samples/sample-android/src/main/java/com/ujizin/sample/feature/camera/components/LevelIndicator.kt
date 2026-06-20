@@ -21,16 +21,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 
 /**
  * 水平仪 / 平衡仪
  *
- * 使用 ROTATION_VECTOR 传感器 + remapCoordinateSystem 正确映射屏幕方向。
- * remapCoordinateSystem 会将设备坐标系转换到屏幕坐标系，
- * 这样 getOrientation()[2] 始终表示屏幕绕"指向用户"轴的旋转（即左右倾斜），
- * 无论设备是竖屏、横屏还是反向，都能正确测量。
+ * 直接使用重力分量计算倾斜角，避免 getOrientation() 的万向锁问题。
+ * TYPE_GRAVITY 传感器只测量重力，不受手部运动干扰。
+ *
+ * 原理：重力向量在屏幕坐标系中的分量
+ * - 竖屏时重力在 -Y 方向，左右倾斜时 X 分量增大
+ * - 横屏时重力在 -X 方向，左右倾斜时 Y 分量增大
  *
  * 倾斜 < 1.5° 时变绿，表示水平。
  */
@@ -47,69 +50,42 @@ fun LevelIndicator(
     val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
-    val rotationVectorSensor =
-      sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
-        ?: sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+    // 优先使用 TYPE_GRAVITY（不受运动影响），回退到加速度计
+    val gravitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)
+      ?: sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
     val listener = object : SensorEventListener {
       override fun onSensorChanged(event: SensorEvent?) {
         event ?: return
+        val gx = event.values[0]
+        val gy = event.values[1]
         val rotation = wm.defaultDisplay.rotation
 
-        if (rotationVectorSensor != null && event.sensor.type == rotationVectorSensor.type) {
-          // 1. 从旋转向量获取旋转矩阵（设备坐标系 → 世界坐标系）
-          val rotationMatrix = FloatArray(9)
-          SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+        // 根据屏幕旋转方向，选择正确的"侧向"和"垂直"分量
+        // 侧向 = 屏幕左右方向的重力分量
+        // 垂直 = 屏幕上下方向的重力分量
+        // roll = atan2(侧向, 垂直)
+        val (lateral, vertical) = when (rotation) {
+          Surface.ROTATION_0 -> gx to -gy      // 竖屏：X 是左右，-Y 是上下
+          Surface.ROTATION_90 -> gy to gx      // 横屏左：Y 是左右，X 是上下
+          Surface.ROTATION_180 -> -gx to gy    // 反向竖屏：-X 是左右，Y 是上下
+          Surface.ROTATION_270 -> -gy to -gx   // 反向横屏：-Y 是左右，-X 是上下
+          else -> gx to -gy
+        }
 
-          // 2. 根据屏幕旋转方向重映射坐标轴
-          //    remapCoordinateSystem 将设备坐标系转换到屏幕坐标系
-          //    这样 getOrientation() 返回的角度就是相对于屏幕的
-          val remappedMatrix = FloatArray(9)
-          val (outX, outY) = when (rotation) {
-            Surface.ROTATION_0 ->
-              SensorManager.AXIS_X to SensorManager.AXIS_Y
-            Surface.ROTATION_90 ->
-              SensorManager.AXIS_Y to SensorManager.AXIS_MINUS_X
-            Surface.ROTATION_180 ->
-              SensorManager.AXIS_MINUS_X to SensorManager.AXIS_MINUS_Y
-            Surface.ROTATION_270 ->
-              SensorManager.AXIS_MINUS_Y to SensorManager.AXIS_X
-            else ->
-              SensorManager.AXIS_X to SensorManager.AXIS_Y
-          }
-          SensorManager.remapCoordinateSystem(
-            rotationMatrix, outX, outY, remappedMatrix,
-          )
-
-          // 3. 获取方向角 — orientation[2] 现在始终是屏幕的 roll（左右倾斜）
-          val orientation = FloatArray(3)
-          SensorManager.getOrientation(remappedMatrix, orientation)
-          rollDegrees = Math.toDegrees(orientation[2].toDouble()).toFloat()
-        } else {
-          // 回退：加速度计
-          val x = event.values[0]
-          val y = event.values[1]
-          rollDegrees = when (rotation) {
-            Surface.ROTATION_0 ->
-              Math.toDegrees(kotlin.math.atan2(x.toDouble(), y.toDouble())).toFloat()
-            Surface.ROTATION_90 ->
-              Math.toDegrees(kotlin.math.atan2(y.toDouble(), (-x).toDouble())).toFloat()
-            Surface.ROTATION_180 ->
-              Math.toDegrees(kotlin.math.atan2((-x).toDouble(), (-y).toDouble())).toFloat()
-            Surface.ROTATION_270 ->
-              Math.toDegrees(kotlin.math.atan2((-y).toDouble(), x.toDouble())).toFloat()
-            else ->
-              Math.toDegrees(kotlin.math.atan2(x.toDouble(), y.toDouble())).toFloat()
-          }
+        // 只在垂直分量足够大时才计算（避免设备平放时分母为零）
+        val magnitude = kotlin.math.sqrt(lateral * lateral + vertical * vertical)
+        if (magnitude > 0.5f) {
+          rollDegrees = Math.toDegrees(
+            atan2(lateral.toDouble(), vertical.toDouble()),
+          ).toFloat()
         }
       }
 
       override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
     }
 
-    val sensorToUse = rotationVectorSensor
-      ?: sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-    sensorManager.registerListener(listener, sensorToUse, SensorManager.SENSOR_DELAY_GAME)
+    sensorManager.registerListener(listener, gravitySensor, SensorManager.SENSOR_DELAY_GAME)
     onDispose { sensorManager.unregisterListener(listener) }
   }
 

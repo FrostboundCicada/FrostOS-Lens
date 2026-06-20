@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.kieronquinn.monetcompat.app.MonetCompatActivity
+import com.ujizin.sample.feature.camera.AppContextHolder
 import com.ujizin.sample.feature.camera.CameraScreen
 import com.ujizin.sample.feature.configuration.ConfigurationScreen
 import com.ujizin.sample.feature.gallery.GalleryScreen
@@ -20,6 +21,7 @@ import com.ujizin.sample.router.Router
 class MainActivity : MonetCompatActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    AppContextHolder.init(applicationContext)
     enableEdgeToEdge()
     AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
     setContent {

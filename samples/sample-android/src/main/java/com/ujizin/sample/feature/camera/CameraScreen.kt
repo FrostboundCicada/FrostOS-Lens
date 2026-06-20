@@ -53,7 +53,7 @@ import com.ujizin.sample.feature.camera.components.AspectRatioSelector
 import com.ujizin.sample.feature.camera.components.BlinkPictureBox
 import com.ujizin.sample.feature.camera.components.ExposureSlider
 import com.ujizin.sample.feature.camera.components.FilterBar
-import com.ujizin.sample.feature.camera.components.FilterOverlay
+import com.ujizin.sample.feature.camera.components.applyFilter
 import com.ujizin.sample.feature.camera.components.GridOverlay
 import com.ujizin.sample.feature.camera.components.LevelIndicator
 import com.ujizin.sample.feature.camera.components.SettingsBox
@@ -78,6 +78,7 @@ fun CameraScreen(
   onConfigurationClick: () -> Unit,
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  var watermarkConfig by remember { mutableStateOf(WatermarkConfig()) }
 
   when (val result: CameraUiState = uiState) {
     is CameraUiState.Ready -> {
@@ -92,12 +93,14 @@ fun CameraScreen(
         useTapToFocus = result.user.useTapToFocus,
         lastPicture = result.lastPicture,
         qrCodeText = result.qrCodeText,
+        watermarkConfig = watermarkConfig,
+        onWatermarkConfigChanged = { watermarkConfig = it },
         onGalleryClick = onGalleryClick,
         onConfigurationClick = onConfigurationClick,
         onRecording = {
           viewModel.toggleRecording(context.contentResolver, cameraController)
         },
-        onTakePicture = { viewModel.takePicture(cameraController) },
+        onTakePicture = { viewModel.takePicture(cameraController, watermarkConfig) },
         isRecording = isRecording,
         onAnalyzeImage = viewModel::analyzeImage,
       )
@@ -121,6 +124,8 @@ fun CameraSection(
   useTapToFocus: Boolean,
   qrCodeText: String?,
   lastPicture: File?,
+  watermarkConfig: WatermarkConfig,
+  onWatermarkConfigChanged: (WatermarkConfig) -> Unit,
   onTakePicture: () -> Unit,
   onRecording: () -> Unit,
   onGalleryClick: () -> Unit,
@@ -147,7 +152,6 @@ fun CameraSection(
   var currentFilter by rememberSaveable { mutableStateOf(CameraFilter.None) }
   var timerOption by rememberSaveable { mutableStateOf(TimerOption.Default) }
   var timerActive by remember { mutableStateOf(false) }
-  var watermarkConfig by remember { mutableStateOf(WatermarkConfig()) }
   var showWatermarkSheet by remember { mutableStateOf(false) }
 
   val flashMode by cameraSession.state.flashMode.collectAsStateWithLifecycle()
@@ -170,7 +174,9 @@ fun CameraSection(
 
   Box(modifier = Modifier.fillMaxSize()) {
     CameraPreview(
-      modifier = Modifier.fillMaxSize(),
+      modifier = Modifier
+        .fillMaxSize()
+        .applyFilter(currentFilter),
       cameraSession = cameraSession,
       camSelector = camSelector,
       captureMode = cameraOption.toCaptureMode(),
@@ -189,9 +195,12 @@ fun CameraSection(
       isPinchToZoomEnabled = usePinchToZoom,
       isFocusOnTapEnabled = useTapToFocus,
     ) {
-      GridOverlay(visible = showGrid)
+      GridOverlay(
+        visible = showGrid,
+        aspectRatio = aspectRatio.ratio,
+        isFullScreen = aspectRatio.isFullScreen,
+      )
       LevelIndicator(visible = showLevel)
-      FilterOverlay(filter = currentFilter)
       WatermarkOverlay(config = watermarkConfig)
       TimerOverlay(
         seconds = if (timerActive) timerOption.seconds else 0,
@@ -274,7 +283,7 @@ fun CameraSection(
     ) {
       WatermarkSettingsSheet(
         config = watermarkConfig,
-        onConfigChanged = { watermarkConfig = it },
+        onConfigChanged = onWatermarkConfigChanged,
         onDismiss = { showWatermarkSheet = false },
       )
     }

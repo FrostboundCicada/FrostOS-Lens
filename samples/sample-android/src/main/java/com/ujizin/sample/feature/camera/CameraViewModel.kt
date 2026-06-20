@@ -23,12 +23,17 @@ import com.ujizin.sample.data.local.datasource.FileDataSource
 import com.ujizin.sample.data.local.datasource.UserDataSource
 import com.ujizin.sample.domain.User
 import com.ujizin.sample.extensions.getQRCodeResult
+import com.ujizin.sample.feature.camera.model.WatermarkConfig
+import com.ujizin.sample.feature.camera.util.WatermarkUtil
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 
 class CameraViewModel(
   private val fileDataSource: FileDataSource,
@@ -62,15 +67,31 @@ class CameraViewModel(
     }
   }
 
-  fun takePicture(cameraController: CameraController) =
-    with(cameraController) {
-      viewModelScope.launch {
+  /**
+   * 拍照 — 支持水印合成
+   * 如果水印启用，使用 ByteArray 重载获取图像数据，合成水印后保存
+   * 否则走原有逻辑直接保存
+   */
+  fun takePicture(
+    cameraController: CameraController,
+    watermarkConfig: WatermarkConfig = WatermarkConfig(),
+  ) = with(cameraController) {
+    viewModelScope.launch {
+      if (watermarkConfig.enabled) {
+        // 使用 ByteArray 重载，获取图像数据后合成水印
+        takePicture { result ->
+          when (result) {
+            is CaptureResult.Error -> onError(result.throwable)
+            is CaptureResult.Success -> saveWatermarkedImage(result.data, watermarkConfig)
+          }
+        }
+      } else {
+        // 无水印 — 走原有逻辑
         when {
           Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> takePicture(
             fileDataSource.imageContentValues,
             onResult = ::onImageResult,
           )
-
           else -> takePicture(
             fileDataSource.getFile("jpg"),
             ::onImageResult,
@@ -78,6 +99,44 @@ class CameraViewModel(
         }
       }
     }
+  }
+
+  /**
+   * 合成水印并保存图片
+   */
+  private suspend fun saveWatermarkedImage(
+    jpegBytes: ByteArray,
+    config: WatermarkConfig,
+  ) = withContext(Dispatchers.IO) {
+    try {
+      val watermarkedBytes = WatermarkUtil.applyWatermark(jpegBytes, config)
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        // Android Q+ — 通过 MediaStore 保存
+        val resolver = AppContextHolder.contentResolver
+        val uri = resolver.insert(
+          MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+          fileDataSource.imageContentValues,
+        )
+        uri?.let {
+          resolver.openOutputStream(it)?.use { os ->
+            os.write(watermarkedBytes)
+            os.flush()
+          }
+        }
+      } else {
+        // Pre-Q — 直接写文件
+        val file = fileDataSource.getFile("jpg")
+        FileOutputStream(file).use { fos ->
+          fos.write(watermarkedBytes)
+          fos.flush()
+        }
+      }
+      captureSuccess()
+    } catch (e: Exception) {
+      onError(e)
+    }
+  }
 
   @SuppressLint("MissingPermission")
   fun toggleRecording(
