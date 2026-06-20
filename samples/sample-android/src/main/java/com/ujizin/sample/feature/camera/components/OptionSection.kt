@@ -25,7 +25,7 @@ import com.ujizin.sample.feature.camera.model.CameraOption
 
 /**
  * OPPO 风格模式选择器
- * 药丸形状，选中项高亮填充
+ * 药丸形状，选中项使用莫奈主色高亮填充
  */
 @Composable
 fun OptionSection(
@@ -37,7 +37,7 @@ fun OptionSection(
   Row(
     modifier = modifier
       .background(
-        color = Color.Black.copy(alpha = 0.4f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
         shape = RoundedCornerShape(50),
       )
       .padding(4.dp),
@@ -49,7 +49,7 @@ fun OptionSection(
 
       val isSelected = currentCameraOption == option
       val bgColor = if (isSelected) {
-        Color.White.copy(alpha = 0.25f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
       } else {
         Color.Transparent
       }

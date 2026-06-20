@@ -133,9 +133,9 @@ private fun TopBarButton(
   onClick: () -> Unit,
 ) {
   val bgColor = if (isActive) {
-    MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+    MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
   } else {
-    Color.Transparent
+    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
   }
   Box(
     modifier = Modifier
@@ -153,7 +153,8 @@ private fun TopBarButton(
       text = label,
       fontSize = 11.sp,
       fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-      color = if (isActive) Color.White else Color.White.copy(alpha = 0.7f),
+      color = if (isActive) MaterialTheme.colorScheme.onPrimary
+      else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
       maxLines = 1,
     )
   }

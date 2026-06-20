@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.ujizin.sample.feature.camera.model.AspectRatioOption
 
 /**
- * OPPO 风格比例选择器
+ * OPPO 风格比例选择器 — 莫奈取色
  */
 @Composable
 fun AspectRatioSelector(
@@ -35,7 +35,7 @@ fun AspectRatioSelector(
   Row(
     modifier = modifier
       .background(
-        color = Color.Black.copy(alpha = 0.4f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
         shape = RoundedCornerShape(50),
       )
       .padding(3.dp),
@@ -49,7 +49,7 @@ fun AspectRatioSelector(
       } else {
         Color.Transparent
       }
-      val textColor = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f)
+      val textColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
 
       Box(
         modifier = Modifier

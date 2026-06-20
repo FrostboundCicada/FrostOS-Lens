@@ -5,6 +5,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.view.Surface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -25,8 +26,8 @@ import kotlin.math.sin
 
 /**
  * 水平仪 / 平衡仪
- * 检测手机左右倾斜角度，画一条水平线
- * 倾斜 < 1° 时变绿，表示水平
+ * 根据屏幕旋转方向自动适配，支持竖屏、横屏、反向竖屏、反向横屏
+ * 倾斜 < 1.5° 时变绿，表示水平
  */
 @Composable
 fun LevelIndicator(
@@ -43,11 +44,23 @@ fun LevelIndicator(
     val listener = object : SensorEventListener {
       override fun onSensorChanged(event: SensorEvent?) {
         event ?: return
-        // 计算左右倾斜角度 (roll)
         val x = event.values[0]
         val y = event.values[1]
         val z = event.values[2]
-        rollDegrees = Math.toDegrees(atan2(x.toDouble(), z.toDouble())).toFloat()
+
+        // 根据屏幕旋转方向选择正确的轴来计算倾斜角
+        val displayRotation = context.display?.rotation ?: Surface.ROTATION_0
+        rollDegrees = when (displayRotation) {
+          // 竖屏 (正常): 绕 Y 轴旋转，使用 atan2(x, z)
+          Surface.ROTATION_0 -> Math.toDegrees(atan2(x.toDouble(), z.toDouble())).toFloat()
+          // 横屏 (左转90°): 绕 X 轴旋转，使用 atan2(y, z)
+          Surface.ROTATION_90 -> Math.toDegrees(atan2(y.toDouble(), z.toDouble())).toFloat()
+          // 反向竖屏 (180°): 绕 Y 轴旋转，但 X 轴反向
+          Surface.ROTATION_180 -> Math.toDegrees(atan2((-x).toDouble(), z.toDouble())).toFloat()
+          // 反向横屏 (右转90°): 绕 X 轴旋转，但 Y 轴反向
+          Surface.ROTATION_270 -> Math.toDegrees(atan2((-y).toDouble(), z.toDouble())).toFloat()
+          else -> Math.toDegrees(atan2(x.toDouble(), z.toDouble())).toFloat()
+        }
       }
       override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
     }
@@ -62,15 +75,14 @@ fun LevelIndicator(
     val cx = size.width / 2f
     val cy = size.height / 2f
     val lineLength = size.width * 0.3f
-    val maxAngle = 30f // 最大倾斜角度映射
+    val maxAngle = 30f
     val clampedRoll = rollDegrees.coerceIn(-maxAngle, maxAngle)
     val angleRad = Math.toRadians(clampedRoll.toDouble()).toFloat()
 
-    // 画水平线（根据倾斜角度旋转）
     val dx = cos(angleRad) * lineLength / 2f
     val dy = -sin(angleRad) * lineLength / 2f
 
-    // 中间短参考线（始终水平）
+    // 参考水平线（始终水平）
     drawLine(
       color = Color.White.copy(alpha = 0.3f),
       start = Offset(cx - lineLength / 2f, cy),
@@ -91,7 +103,7 @@ fun LevelIndicator(
     drawCircle(color = lineColor, radius = dotRadius, center = Offset(cx - dx, cy - dy))
     drawCircle(color = lineColor, radius = dotRadius, center = Offset(cx + dx, cy + dy))
 
-    // 中心圆点
+    // 中心圆点 - 水平时显示
     if (isLevel) {
       drawCircle(color = Color.Green, radius = 5f, center = Offset(cx, cy))
       drawCircle(color = Color.Green.copy(alpha = 0.3f), radius = 12f, center = Offset(cx, cy), style = Stroke(width = 1.5f))

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -58,7 +59,7 @@ fun ExposureSlider(
         .height(sliderHeight)
         .padding(vertical = 4.dp)
         .clip(RoundedCornerShape(15.dp))
-        .background(Color.Black.copy(alpha = 0.35f))
+        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
         .onGloballyPositioned { sliderHeightPx = it.size.height.toFloat() }
         .pointerInput(minEv, maxEv) {
           detectVerticalDragGestures { change, _ ->
@@ -77,7 +78,7 @@ fun ExposureSlider(
           .fillMaxHeight()
           .padding(vertical = 14.dp)
           .clip(RoundedCornerShape(2.dp))
-          .background(Color.White.copy(alpha = 0.25f)),
+          .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
       )
       // 指示器（根据fraction定位）
       val indicatorOffsetPx = (sliderHeightPx - 28f) * (1f - fraction)
@@ -87,7 +88,7 @@ fun ExposureSlider(
           .height(4.dp)
           .offset { IntOffset(0, indicatorOffsetPx.roundToInt()) }
           .clip(RoundedCornerShape(2.dp))
-          .background(Color.White.copy(alpha = 0.85f)),
+          .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)),
       )
     }
     Text(text = "-", fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f), textAlign = TextAlign.Center)

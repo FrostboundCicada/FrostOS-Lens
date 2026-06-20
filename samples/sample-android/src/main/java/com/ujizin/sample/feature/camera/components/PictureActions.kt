@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -76,12 +77,13 @@ private fun GalleryButton(
 ) {
   var shouldAnimate by remember { mutableStateOf(false) }
   val animScale by animateFloatAsState(targetValue = if (shouldAnimate) 1.2F else 1F)
+  val surfaceColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
   Box(
     modifier = Modifier
       .scale(animScale)
       .size(48.dp)
       .clip(CircleShape)
-      .background(Color.White.copy(alpha = 0.15F), CircleShape)
+      .background(surfaceColor, CircleShape)
       .clickable(onClick = onClick)
       .then(modifier),
     contentAlignment = Alignment.Center,
@@ -117,12 +119,13 @@ private fun SwitchButton(
     targetValue = if (clicked) 360F else 1F,
     animationSpec = tween(durationMillis = 400),
   )
+  val surfaceColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
   Box(
     modifier = Modifier
       .rotate(rotate)
       .size(48.dp)
       .clip(CircleShape)
-      .background(Color.White.copy(alpha = 0.15F), CircleShape)
+      .background(surfaceColor, CircleShape)
       .clickable(
         onClick = {
           clicked = !clicked
@@ -142,8 +145,9 @@ private fun SwitchButton(
 }
 
 /**
- * OPPO 风格快门按钮
- * 外层白环 (液态玻璃效果) + 内层实心圆
+ * OPPO 风格快门按钮 — 液态玻璃 + 莫奈取色
+ * 外圈：半透明背景 + Cloudy 模糊 + liquidGlass 畸变效果 + 白色边框
+ * 内圈：实心圆，录像时变红
  */
 @Composable
 private fun OPPOShutterButton(
@@ -152,32 +156,36 @@ private fun OPPOShutterButton(
   isRecording: Boolean,
   onClick: () -> Unit,
 ) {
-  // 外环尺寸
   val outerSize = 80.dp
-  // 内圆尺寸
   val innerSize = if (isRecording) 32.dp else 56.dp
-  // 内圆颜色
+
+  // 内圆颜色：录像红色，普通用莫奈主色
   val innerColor by animateColorAsState(
-    targetValue = if (isRecording) Color.Red else Color.White.copy(alpha = 0.9F),
+    targetValue = if (isRecording) Color.Red
+    else MaterialTheme.colorScheme.primaryContainer,
     animationSpec = tween(durationMillis = 250),
   )
+
+  // 外圈背景色：使用莫奈 surface 色，半透明
+  val ringBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f)
 
   Box(
     modifier = modifier.size(outerSize),
     contentAlignment = Alignment.Center,
   ) {
-    // 外层白环 - 液态玻璃效果
+    // 外圈 — 液态玻璃效果
+    // 注意：background 必须在 cloudy/liquidGlass 之前，否则会被覆盖
     Box(
       modifier = Modifier
         .size(outerSize)
         .clip(CircleShape)
+        .background(ringBg, CircleShape)
         .cloudy(radius = 20)
         .liquidGlass(lensCenter = Offset(0f, 0f))
-        .background(Color.White.copy(alpha = 0.12F), CircleShape)
-        .border(BorderStroke(4.dp, Color.White.copy(alpha = 0.9F)), CircleShape)
+        .border(BorderStroke(4.dp, Color.White.copy(alpha = 0.9f)), CircleShape)
         .clickable(onClick = onClick),
     )
-    // 内层实心圆
+    // 内圈实心圆
     Box(
       modifier = Modifier
         .size(innerSize)
