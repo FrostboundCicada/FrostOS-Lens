@@ -2,6 +2,7 @@ package com.ujizin.sample
 
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
@@ -19,6 +20,7 @@ import com.ujizin.sample.router.Router
 class MainActivity : MonetCompatActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    enableEdgeToEdge()
     AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
     setContent {
       CamposerTheme {

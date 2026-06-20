@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.StrokeCap
@@ -78,13 +79,13 @@ private fun GalleryButton(
 ) {
   var shouldAnimate by remember { mutableStateOf(false) }
   val animScale by animateFloatAsState(targetValue = if (shouldAnimate) 1.2F else 1F)
-  val surfaceColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
   Box(
     modifier = Modifier
       .scale(animScale)
       .size(48.dp)
       .clip(CircleShape)
-      .background(surfaceColor, CircleShape)
+      .background(Color.White.copy(alpha = 0.12f), CircleShape)
+      .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
       .clickable(onClick = onClick)
       .then(modifier),
     contentAlignment = Alignment.Center,
@@ -120,13 +121,13 @@ private fun SwitchButton(
     targetValue = if (clicked) 360F else 1F,
     animationSpec = tween(durationMillis = 400),
   )
-  val surfaceColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
   Box(
     modifier = Modifier
       .rotate(rotate)
       .size(48.dp)
       .clip(CircleShape)
-      .background(surfaceColor, CircleShape)
+      .background(Color.White.copy(alpha = 0.12f), CircleShape)
+      .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
       .clickable(
         onClick = {
           clicked = !clicked
@@ -146,9 +147,15 @@ private fun SwitchButton(
 }
 
 /**
- * 快门按钮 — 手绘玻璃质感圆环
- * 外圈：半透明背景 + 顶部高光弧线 + 白色边框
- * 内圈：实心圆，录像时缩小变红，使用莫奈主色
+ * 快门按钮 — 多层渐变模拟真实玻璃质感
+ *
+ * 外圈结构（从底到顶）：
+ * 1. 径向渐变底色（上亮下暗，模拟玻璃透光）
+ * 2. 线性渐变高光层（顶部强光反射）
+ * 3. 顶部弧线高光（模拟光源反射点）
+ * 4. 白色边框
+ *
+ * 内圈：莫奈取色实心圆，录像时变红缩小
  */
 @Composable
 private fun ShutterButton(
@@ -170,20 +177,45 @@ private fun ShutterButton(
     modifier = modifier.size(outerSize),
     contentAlignment = Alignment.Center,
   ) {
-    // 外圈 — 玻璃质感
+    // 外圈 — 多层玻璃效果
     Box(
       modifier = Modifier
         .size(outerSize)
         .clip(CircleShape)
-        .background(Color.White.copy(alpha = 0.16f), CircleShape)
         .drawWithContent {
-          drawContent()
-          // 顶部高光弧线 — 模拟玻璃反光
-          val strokeW = size.width * 0.045f
-          val arcR = size.width / 2f - strokeW / 2f
+          val w = size.width
+          val h = size.height
+
+          // 第1层：径向渐变底色 — 上亮下暗，模拟玻璃透光
+          drawRect(
+            brush = Brush.radialGradient(
+              colors = listOf(
+                Color.White.copy(alpha = 0.28f),
+                Color.White.copy(alpha = 0.06f),
+              ),
+              center = Offset(w / 2f, h * 0.3f),
+              radius = w,
+            ),
+          )
+
+          // 第2层：顶部线性渐变高光 — 模拟从上方来的光源
+          drawRect(
+            brush = Brush.verticalGradient(
+              colors = listOf(
+                Color.White.copy(alpha = 0.35f),
+                Color.Transparent,
+              ),
+              startY = 0f,
+              endY = h * 0.5f,
+            ),
+          )
+
+          // 第3层：顶部弧线高光 — 模拟光源反射点
+          val strokeW = w * 0.04f
+          val arcR = w / 2f - strokeW / 2f
           val margin = strokeW / 2f
           drawArc(
-            color = Color.White.copy(alpha = 0.5f),
+            color = Color.White.copy(alpha = 0.6f),
             startAngle = 210f,
             sweepAngle = 120f,
             useCenter = false,
@@ -191,7 +223,21 @@ private fun ShutterButton(
             size = Size(arcR * 2f, arcR * 2f),
             style = Stroke(width = strokeW, cap = StrokeCap.Round),
           )
+
+          // 第4层：底部微弱阴影 — 增加立体感
+          drawArc(
+            color = Color.Black.copy(alpha = 0.15f),
+            startAngle = 30f,
+            sweepAngle = 120f,
+            useCenter = false,
+            topLeft = Offset(margin, margin),
+            size = Size(arcR * 2f, arcR * 2f),
+            style = Stroke(width = strokeW, cap = StrokeCap.Round),
+          )
+
+          drawContent()
         }
+        // 白色边框
         .border(3.dp, Color.White.copy(alpha = 0.9f), CircleShape)
         .clickable(onClick = onClick),
     )

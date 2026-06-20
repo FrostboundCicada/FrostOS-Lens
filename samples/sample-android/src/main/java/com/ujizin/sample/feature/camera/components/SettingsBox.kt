@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,17 +26,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ujizin.sample.R
 import com.ujizin.sample.extensions.roundTo
 import com.ujizin.sample.feature.camera.model.Flash
 import com.ujizin.sample.feature.camera.model.TimerOption
 import kotlinx.coroutines.delay
 
+/**
+ * 顶部设置栏 — 玻璃质感药丸设计
+ * 左：闪光灯 | 中：录制+变焦 | 右：定时/网格/水印/滤镜/设置
+ */
 @Composable
 fun SettingsBox(
   modifier: Modifier = Modifier,
@@ -45,16 +49,20 @@ fun SettingsBox(
   isVideo: Boolean,
   hasFlashUnit: Boolean,
   showGrid: Boolean,
+  showLevel: Boolean,
+  showFilter: Boolean,
   timerOption: TimerOption,
+  watermarkEnabled: Boolean,
   onFlashModeChanged: (Flash) -> Unit,
   onShowGridChanged: (Boolean) -> Unit,
+  onShowLevelChanged: (Boolean) -> Unit,
+  onShowFilterChanged: (Boolean) -> Unit,
   onTimerChanged: (TimerOption) -> Unit,
+  onWatermarkClick: () -> Unit,
   onConfigurationClick: () -> Unit,
   onZoomFinish: () -> Unit,
 ) {
-  Box(
-    modifier = modifier.fillMaxWidth(),
-  ) {
+  Box(modifier = modifier.fillMaxWidth()) {
     // 左侧: 闪光灯
     FlashBox(
       modifier = Modifier.align(Alignment.TopStart),
@@ -63,6 +71,7 @@ fun SettingsBox(
       isVideo = isVideo,
       onFlashModeChanged = onFlashModeChanged,
     )
+
     // 中间: 录制指示器 + 变焦
     Column(
       modifier = Modifier.align(Alignment.TopCenter),
@@ -78,25 +87,49 @@ fun SettingsBox(
         exit = fadeOut() + slideOutVertically(),
         visible = zoomHasChanged,
       ) {
-        Text(
-          text = "${zoomRatio.roundTo(1)}X",
-          fontSize = 18.sp,
-          textAlign = TextAlign.Center,
-          color = Color.White,
-        )
+        Box(
+          modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.Black.copy(alpha = 0.5f))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        ) {
+          Text(
+            text = "${zoomRatio.roundTo(1)}X",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center,
+            color = Color.White,
+          )
+        }
       }
     }
-    // 右侧: 定时 + 网格 + 设置
+
+    // 右侧: 功能按钮组
     Row(
       modifier = Modifier.align(Alignment.TopEnd),
-      horizontalArrangement = Arrangement.spacedBy(6.dp),
+      horizontalArrangement = Arrangement.spacedBy(4.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
       TimerButton(timerOption = timerOption, onClick = { onTimerChanged(nextTimer(timerOption)) })
       TopBarButton(
-        label = stringResource(R.string.grid),
+        label = "水平",
+        isActive = showLevel,
+        onClick = { onShowLevelChanged(!showLevel) },
+      )
+      TopBarButton(
+        label = "网格",
         isActive = showGrid,
         onClick = { onShowGridChanged(!showGrid) },
+      )
+      TopBarButton(
+        label = "滤镜",
+        isActive = showFilter,
+        onClick = { onShowFilterChanged(!showFilter) },
+      )
+      TopBarButton(
+        label = "水印",
+        isActive = watermarkEnabled,
+        onClick = onWatermarkClick,
       )
       ConfigurationBox(onConfigurationClick = onConfigurationClick)
     }
@@ -120,12 +153,15 @@ private fun TimerButton(
 ) {
   val isActive = timerOption != TimerOption.Off
   TopBarButton(
-    label = if (isActive) stringResource(timerOption.titleRes) else stringResource(R.string.timer),
+    label = if (isActive) "${timerOption.seconds}s" else "定时",
     isActive = isActive,
     onClick = onClick,
   )
 }
 
+/**
+ * 顶部按钮 — 玻璃质感药丸
+ */
 @Composable
 private fun TopBarButton(
   label: String,
@@ -135,12 +171,18 @@ private fun TopBarButton(
   val bgColor = if (isActive) {
     MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
   } else {
-    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+    Color.White.copy(alpha = 0.12f)
+  }
+  val borderColor = if (isActive) {
+    MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+  } else {
+    Color.White.copy(alpha = 0.08f)
   }
   Box(
     modifier = Modifier
       .clip(CircleShape)
       .background(bgColor)
+      .border(1.dp, borderColor, CircleShape)
       .clickable(
         interactionSource = remember { MutableInteractionSource() },
         indication = null,
@@ -153,8 +195,7 @@ private fun TopBarButton(
       text = label,
       fontSize = 11.sp,
       fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-      color = if (isActive) MaterialTheme.colorScheme.onPrimary
-      else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+      color = Color.White,
       maxLines = 1,
     )
   }

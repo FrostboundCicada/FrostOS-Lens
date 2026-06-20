@@ -3,12 +3,18 @@ package com.ujizin.sample.feature.camera
 import android.util.Log
 import android.widget.Toast
 import androidx.camera.core.ImageProxy
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,16 +52,22 @@ import com.ujizin.sample.feature.camera.components.ActionBox
 import com.ujizin.sample.feature.camera.components.AspectRatioSelector
 import com.ujizin.sample.feature.camera.components.BlinkPictureBox
 import com.ujizin.sample.feature.camera.components.ExposureSlider
+import com.ujizin.sample.feature.camera.components.FilterBar
+import com.ujizin.sample.feature.camera.components.FilterOverlay
 import com.ujizin.sample.feature.camera.components.GridOverlay
 import com.ujizin.sample.feature.camera.components.LevelIndicator
 import com.ujizin.sample.feature.camera.components.SettingsBox
 import com.ujizin.sample.feature.camera.components.TimerOverlay
+import com.ujizin.sample.feature.camera.components.WatermarkOverlay
+import com.ujizin.sample.feature.camera.components.WatermarkSettingsSheet
 import com.ujizin.sample.feature.camera.mapper.toFlash
 import com.ujizin.sample.feature.camera.mapper.toFlashMode
-import com.ujizin.sample.feature.camera.model.CameraOption
 import com.ujizin.sample.feature.camera.model.AspectRatioOption
+import com.ujizin.sample.feature.camera.model.CameraFilter
+import com.ujizin.sample.feature.camera.model.CameraOption
 import com.ujizin.sample.feature.camera.model.Flash
 import com.ujizin.sample.feature.camera.model.TimerOption
+import com.ujizin.sample.feature.camera.model.WatermarkConfig
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
 
@@ -131,8 +143,12 @@ fun CameraSection(
   var aspectRatio by rememberSaveable { mutableStateOf(AspectRatioOption.Default) }
   var showGrid by rememberSaveable { mutableStateOf(false) }
   var showLevel by rememberSaveable { mutableStateOf(true) }
+  var showFilter by rememberSaveable { mutableStateOf(false) }
+  var currentFilter by rememberSaveable { mutableStateOf(CameraFilter.None) }
   var timerOption by rememberSaveable { mutableStateOf(TimerOption.Default) }
   var timerActive by remember { mutableStateOf(false) }
+  var watermarkConfig by remember { mutableStateOf(WatermarkConfig()) }
+  var showWatermarkSheet by remember { mutableStateOf(false) }
 
   val flashMode by cameraSession.state.flashMode.collectAsStateWithLifecycle()
   val enableTorch by cameraSession.state.isTorchEnabled.collectAsStateWithLifecycle()
@@ -152,90 +168,116 @@ fun CameraSection(
     }
   }
 
-  CameraPreview(
-    modifier = Modifier.fillMaxSize(),
-    cameraSession = cameraSession,
-    camSelector = camSelector,
-    captureMode = cameraOption.toCaptureMode(),
-    camFormat = remember(aspectRatio) {
-      CamFormat(
-        AspectRatioConfig(aspectRatio.ratio),
-        ResolutionConfig.UltraHigh,
-        FrameRateConfig(60),
-        VideoStabilizationConfig(VideoStabilizationMode.Standard),
+  Box(modifier = Modifier.fillMaxSize()) {
+    CameraPreview(
+      modifier = Modifier.fillMaxSize(),
+      cameraSession = cameraSession,
+      camSelector = camSelector,
+      captureMode = cameraOption.toCaptureMode(),
+      camFormat = remember(aspectRatio) {
+        CamFormat(
+          AspectRatioConfig(aspectRatio.ratio),
+          ResolutionConfig.UltraHigh,
+          FrameRateConfig(60),
+          VideoStabilizationConfig(VideoStabilizationMode.Standard),
+        )
+      },
+      scaleType = if (aspectRatio.isFullScreen) ScaleType.FillCenter else ScaleType.FitCenter,
+      previewBackgroundColor = Color.Black,
+      imageAnalyzer = imageAnalyzer,
+      isImageAnalysisEnabled = cameraOption == CameraOption.QRCode,
+      isPinchToZoomEnabled = usePinchToZoom,
+      isFocusOnTapEnabled = useTapToFocus,
+    ) {
+      GridOverlay(visible = showGrid)
+      LevelIndicator(visible = showLevel)
+      FilterOverlay(filter = currentFilter)
+      WatermarkOverlay(config = watermarkConfig)
+      TimerOverlay(
+        seconds = if (timerActive) timerOption.seconds else 0,
+        onFinished = {
+          timerActive = false
+          if (cameraOption == CameraOption.Video) onRecording()
+          else onTakePicture()
+        },
       )
-    },
-    scaleType = if (aspectRatio.isFullScreen) ScaleType.FillCenter else ScaleType.FitCenter,
-    previewBackgroundColor = Color.Black,
-    imageAnalyzer = imageAnalyzer,
-    isImageAnalysisEnabled = cameraOption == CameraOption.QRCode,
-    isPinchToZoomEnabled = usePinchToZoom,
-    isFocusOnTapEnabled = useTapToFocus,
-  ) {
-    GridOverlay(visible = showGrid)
-    LevelIndicator(visible = showLevel)
-    TimerOverlay(
-      seconds = if (timerActive) timerOption.seconds else 0,
-      onFinished = {
-        timerActive = false
-        if (cameraOption == CameraOption.Video) onRecording()
-        else onTakePicture()
-      },
-    )
-    BlinkPictureBox(lastPicture, cameraOption == CameraOption.Video)
-    // Capture outer function references to avoid shadowing in CameraInnerContent lambdas
-    val takePicture = onTakePicture
-    val startRecording = onRecording
-    CameraInnerContent(
-      Modifier.fillMaxSize(),
-      zoomHasChanged = zoomHasChanged,
-      zoomRatio = zoomRatio,
-      flashMode = flashMode.toFlash(enableTorch),
-      isRecording = isRecording,
-      cameraOption = cameraOption,
-      aspectRatio = aspectRatio,
-      showGrid = showGrid,
-      timerOption = timerOption,
-      exposureCompensation = exposureCompensation,
-      evMin = evMin,
-      evMax = evMax,
-      isExposureSupported = isExposureSupported,
-      hasFlashUnit = hasFlashUnit,
-      qrCodeText = qrCodeText,
-      isVideoSupported = true,
-      onFlashModeChanged = { flash ->
-        with(cameraSession.controller) {
-          setTorchEnabled(flash == Flash.Always)
-          setFlashMode(flash.toFlashMode())
-        }
-      },
-      onShowGridChanged = { showGrid = it },
-      onTimerChanged = { timerOption = it },
-      onEvChanged = { cameraSession.controller.setExposureCompensation(it) },
-      onZoomFinish = { zoomHasChanged = false },
-      lastPicture = lastPicture,
-      onTakePicture = {
-        if (timerOption.seconds > 0) {
-          timerActive = true
-        } else {
-          takePicture()
-        }
-      },
-      onRecording = {
-        if (timerOption.seconds > 0) {
-          timerActive = true
-        } else {
-          startRecording()
-        }
-      },
-      onSwitchCamera = {
-        if (cameraSession.isStreaming) camSelector = camSelector.inverse
-      },
-      onCameraOptionChanged = { cameraOption = it },
-      onAspectRatioChanged = { aspectRatio = it },
-      onGalleryClick = onGalleryClick,
-      onConfigurationClick = onConfigurationClick,
-    )
+      BlinkPictureBox(lastPicture, cameraOption == CameraOption.Video)
+
+      val takePicture = onTakePicture
+      val startRecording = onRecording
+      CameraInnerContent(
+        Modifier.fillMaxSize(),
+        zoomHasChanged = zoomHasChanged,
+        zoomRatio = zoomRatio,
+        flashMode = flashMode.toFlash(enableTorch),
+        isRecording = isRecording,
+        cameraOption = cameraOption,
+        aspectRatio = aspectRatio,
+        showGrid = showGrid,
+        showLevel = showLevel,
+        showFilter = showFilter,
+        currentFilter = currentFilter,
+        timerOption = timerOption,
+        watermarkEnabled = watermarkConfig.enabled,
+        exposureCompensation = exposureCompensation,
+        evMin = evMin,
+        evMax = evMax,
+        isExposureSupported = isExposureSupported,
+        hasFlashUnit = hasFlashUnit,
+        qrCodeText = qrCodeText,
+        isVideoSupported = true,
+        onFlashModeChanged = { flash ->
+          with(cameraSession.controller) {
+            setTorchEnabled(flash == Flash.Always)
+            setFlashMode(flash.toFlashMode())
+          }
+        },
+        onShowGridChanged = { showGrid = it },
+        onShowLevelChanged = { showLevel = it },
+        onShowFilterChanged = { showFilter = it },
+        onFilterChanged = { currentFilter = it },
+        onTimerChanged = { timerOption = it },
+        onWatermarkClick = { showWatermarkSheet = true },
+        onEvChanged = { cameraSession.controller.setExposureCompensation(it) },
+        onZoomFinish = { zoomHasChanged = false },
+        lastPicture = lastPicture,
+        onTakePicture = {
+          if (timerOption.seconds > 0) {
+            timerActive = true
+          } else {
+            takePicture()
+          }
+        },
+        onRecording = {
+          if (timerOption.seconds > 0) {
+            timerActive = true
+          } else {
+            startRecording()
+          }
+        },
+        onSwitchCamera = {
+          if (cameraSession.isStreaming) camSelector = camSelector.inverse
+        },
+        onCameraOptionChanged = { cameraOption = it },
+        onAspectRatioChanged = { aspectRatio = it },
+        onGalleryClick = onGalleryClick,
+        onConfigurationClick = onConfigurationClick,
+      )
+    }
+
+    // 水印设置面板 — 从底部滑入
+    AnimatedVisibility(
+      modifier = Modifier.align(Alignment.BottomCenter),
+      visible = showWatermarkSheet,
+      enter = slideInVertically { it },
+      exit = slideOutVertically { it },
+    ) {
+      WatermarkSettingsSheet(
+        config = watermarkConfig,
+        onConfigChanged = { watermarkConfig = it },
+        onDismiss = { showWatermarkSheet = false },
+      )
+    }
   }
 }
 
@@ -249,7 +291,11 @@ fun CameraInnerContent(
   cameraOption: CameraOption,
   aspectRatio: AspectRatioOption,
   showGrid: Boolean,
+  showLevel: Boolean,
+  showFilter: Boolean,
+  currentFilter: CameraFilter,
   timerOption: TimerOption,
+  watermarkEnabled: Boolean,
   exposureCompensation: Float,
   evMin: Float,
   evMax: Float,
@@ -261,7 +307,11 @@ fun CameraInnerContent(
   onGalleryClick: () -> Unit,
   onFlashModeChanged: (Flash) -> Unit,
   onShowGridChanged: (Boolean) -> Unit,
+  onShowLevelChanged: (Boolean) -> Unit,
+  onShowFilterChanged: (Boolean) -> Unit,
+  onFilterChanged: (CameraFilter) -> Unit,
   onTimerChanged: (TimerOption) -> Unit,
+  onWatermarkClick: () -> Unit,
   onEvChanged: (Float) -> Unit,
   onZoomFinish: () -> Unit,
   onRecording: () -> Unit,
@@ -275,10 +325,12 @@ fun CameraInnerContent(
     modifier = modifier,
     verticalArrangement = Arrangement.SpaceBetween,
   ) {
+    // 顶部栏 — 使用 statusBarsPadding 避开状态栏
     SettingsBox(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(top = 8.dp, start = 16.dp, end = 16.dp),
+        .statusBarsPadding()
+        .padding(top = 4.dp, start = 12.dp, end = 12.dp),
       flashMode = flashMode,
       zoomRatio = zoomRatio,
       isVideo = cameraOption == CameraOption.Video,
@@ -286,13 +338,20 @@ fun CameraInnerContent(
       zoomHasChanged = zoomHasChanged,
       isRecording = isRecording,
       showGrid = showGrid,
+      showLevel = showLevel,
+      showFilter = showFilter,
       timerOption = timerOption,
+      watermarkEnabled = watermarkEnabled,
       onFlashModeChanged = onFlashModeChanged,
       onShowGridChanged = onShowGridChanged,
+      onShowLevelChanged = onShowLevelChanged,
+      onShowFilterChanged = onShowFilterChanged,
       onTimerChanged = onTimerChanged,
+      onWatermarkClick = onWatermarkClick,
       onConfigurationClick = onConfigurationClick,
       onZoomFinish = onZoomFinish,
     )
+
     // 中间区域: 曝光补偿 (右侧竖排)
     Row(
       modifier = Modifier.fillMaxWidth(),
@@ -308,10 +367,23 @@ fun CameraInnerContent(
         )
       }
     }
+
+    // 底部区域
     Column(
-      modifier = Modifier.fillMaxWidth(),
+      modifier = Modifier
+        .fillMaxWidth()
+        .navigationBarsPadding(),
       horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+      // 滤镜选择栏（可切换显示/隐藏）
+      AnimatedVisibility(visible = showFilter) {
+        FilterBar(
+          modifier = Modifier.padding(bottom = 8.dp),
+          currentFilter = currentFilter,
+          onFilterChanged = onFilterChanged,
+        )
+      }
+
       if (cameraOption == CameraOption.Photo) {
         AspectRatioSelector(
           modifier = Modifier.padding(bottom = 12.dp),
@@ -323,7 +395,7 @@ fun CameraInnerContent(
         modifier = Modifier
           .fillMaxWidth()
           .noClickable()
-          .padding(bottom = 32.dp),
+          .padding(bottom = 16.dp),
         lastPicture = lastPicture,
         onGalleryClick = onGalleryClick,
         cameraOption = cameraOption,

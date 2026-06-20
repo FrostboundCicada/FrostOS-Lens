@@ -26,8 +26,12 @@ import kotlin.math.sin
 
 /**
  * 水平仪 / 平衡仪
- * 使用 ROTATION_VECTOR 传感器获取设备在世界坐标系中的姿态，
- * 再根据屏幕旋转方向映射到正确的轴，支持所有方向。
+ *
+ * 使用 ROTATION_VECTOR 传感器 + remapCoordinateSystem 正确映射屏幕方向。
+ * remapCoordinateSystem 会将设备坐标系转换到屏幕坐标系，
+ * 这样 getOrientation()[2] 始终表示屏幕绕"指向用户"轴的旋转（即左右倾斜），
+ * 无论设备是竖屏、横屏还是反向，都能正确测量。
+ *
  * 倾斜 < 1.5° 时变绿，表示水平。
  */
 @Composable
@@ -53,35 +57,50 @@ fun LevelIndicator(
         val rotation = wm.defaultDisplay.rotation
 
         if (rotationVectorSensor != null && event.sensor.type == rotationVectorSensor.type) {
-          // 使用旋转矢量传感器，精度高，所有方向都可靠
+          // 1. 从旋转向量获取旋转矩阵（设备坐标系 → 世界坐标系）
           val rotationMatrix = FloatArray(9)
           SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+
+          // 2. 根据屏幕旋转方向重映射坐标轴
+          //    remapCoordinateSystem 将设备坐标系转换到屏幕坐标系
+          //    这样 getOrientation() 返回的角度就是相对于屏幕的
+          val remappedMatrix = FloatArray(9)
+          val (outX, outY) = when (rotation) {
+            Surface.ROTATION_0 ->
+              SensorManager.AXIS_X to SensorManager.AXIS_Y
+            Surface.ROTATION_90 ->
+              SensorManager.AXIS_Y to SensorManager.AXIS_MINUS_X
+            Surface.ROTATION_180 ->
+              SensorManager.AXIS_MINUS_X to SensorManager.AXIS_MINUS_Y
+            Surface.ROTATION_270 ->
+              SensorManager.AXIS_MINUS_Y to SensorManager.AXIS_X
+            else ->
+              SensorManager.AXIS_X to SensorManager.AXIS_Y
+          }
+          SensorManager.remapCoordinateSystem(
+            rotationMatrix, outX, outY, remappedMatrix,
+          )
+
+          // 3. 获取方向角 — orientation[2] 现在始终是屏幕的 roll（左右倾斜）
           val orientation = FloatArray(3)
-          SensorManager.getOrientation(rotationMatrix, orientation)
-          // orientation[2] = roll (绕 Y 轴), orientation[1] = pitch (绕 X 轴)
-          rollDegrees = Math.toDegrees(
-            when (rotation) {
-              Surface.ROTATION_0 -> orientation[2].toDouble()   // 竖屏：roll
-              Surface.ROTATION_90 -> orientation[1].toDouble()  // 横屏左：pitch
-              Surface.ROTATION_180 -> (-orientation[2]).toDouble()
-              Surface.ROTATION_270 -> (-orientation[1]).toDouble()
-              else -> orientation[2].toDouble()
-            },
-          ).toFloat()
+          SensorManager.getOrientation(remappedMatrix, orientation)
+          rollDegrees = Math.toDegrees(orientation[2].toDouble()).toFloat()
         } else {
-          // 回退：加速度计（某些设备没有旋转矢量传感器）
+          // 回退：加速度计
           val x = event.values[0]
           val y = event.values[1]
-          val z = event.values[2]
-          rollDegrees = Math.toDegrees(
-            when (rotation) {
-              Surface.ROTATION_0 -> kotlin.math.atan2(x.toDouble(), z.toDouble())
-              Surface.ROTATION_90 -> kotlin.math.atan2(y.toDouble(), z.toDouble())
-              Surface.ROTATION_180 -> kotlin.math.atan2((-x).toDouble(), z.toDouble())
-              Surface.ROTATION_270 -> kotlin.math.atan2((-y).toDouble(), z.toDouble())
-              else -> kotlin.math.atan2(x.toDouble(), z.toDouble())
-            },
-          ).toFloat()
+          rollDegrees = when (rotation) {
+            Surface.ROTATION_0 ->
+              Math.toDegrees(kotlin.math.atan2(x.toDouble(), y.toDouble())).toFloat()
+            Surface.ROTATION_90 ->
+              Math.toDegrees(kotlin.math.atan2(y.toDouble(), (-x).toDouble())).toFloat()
+            Surface.ROTATION_180 ->
+              Math.toDegrees(kotlin.math.atan2((-x).toDouble(), (-y).toDouble())).toFloat()
+            Surface.ROTATION_270 ->
+              Math.toDegrees(kotlin.math.atan2((-y).toDouble(), x.toDouble())).toFloat()
+            else ->
+              Math.toDegrees(kotlin.math.atan2(x.toDouble(), y.toDouble())).toFloat()
+          }
         }
       }
 
