@@ -102,8 +102,8 @@ fun CameraScreen(
         onRecording = {
           viewModel.toggleRecording(context.contentResolver, cameraController)
         },
-        onTakePicture = { params, filter ->
-          viewModel.takePicture(cameraController, watermarkConfig, filter, params)
+        onTakePicture = { params, filter, cropRatio ->
+          viewModel.takePicture(cameraController, watermarkConfig, filter, params, cropRatio)
         },
         isRecording = isRecording,
         onAnalyzeImage = viewModel::analyzeImage,
@@ -130,7 +130,7 @@ fun CameraSection(
   lastPicture: File?,
   watermarkConfig: WatermarkConfig,
   onWatermarkConfigChanged: (WatermarkConfig) -> Unit,
-  onTakePicture: (CameraParams, CameraFilter) -> Unit,
+  onTakePicture: (CameraParams, CameraFilter, Float) -> Unit,
   onRecording: () -> Unit,
   onGalleryClick: () -> Unit,
   onAnalyzeImage: (ImageProxy) -> Unit,
@@ -172,7 +172,9 @@ fun CameraSection(
       zoomRatio = zoomRatio,
       exposureCompensation = exposureCompensation,
     )
-    onTakePicture(params, currentFilter)
+    // FullScreen 不裁剪（保留传感器原始比例），其他比例裁剪到目标
+    val cropRatio = if (aspectRatio.isFullScreen) 0f else aspectRatio.ratio
+    onTakePicture(params, currentFilter, cropRatio)
   }
 
   LaunchedEffect(zoomRatio) { zoomHasChanged = true }
@@ -210,84 +212,85 @@ fun CameraSection(
       isImageAnalysisEnabled = cameraOption == CameraOption.QRCode,
       isPinchToZoomEnabled = usePinchToZoom,
       isFocusOnTapEnabled = useTapToFocus,
-    ) {
-      GridOverlay(
-        visible = showGrid,
-        aspectRatio = aspectRatio.ratio,
-        isFullScreen = aspectRatio.isFullScreen,
-      )
-      LevelIndicator(visible = showLevel)
-      WatermarkOverlay(config = watermarkConfig)
-      TimerOverlay(
-        seconds = if (timerActive) timerOption.seconds else 0,
-        onFinished = {
-          timerActive = false
-          if (cameraOption == CameraOption.Video) onRecording()
-          else takePictureWithParams()
-        },
-      )
-      BlinkPictureBox(lastPicture, cameraOption == CameraOption.Video)
+    )
 
-      val startRecording = onRecording
-      CameraInnerContent(
-        Modifier.fillMaxSize(),
-        zoomHasChanged = zoomHasChanged,
-        zoomRatio = zoomRatio,
-        flashMode = flashMode.toFlash(enableTorch),
-        isRecording = isRecording,
-        cameraOption = cameraOption,
-        aspectRatio = aspectRatio,
-        showGrid = showGrid,
-        showLevel = showLevel,
-        showFilter = showFilter,
-        currentFilter = currentFilter,
-        timerOption = timerOption,
-        watermarkEnabled = watermarkConfig.enabled,
-        exposureCompensation = exposureCompensation,
-        evMin = evMin,
-        evMax = evMax,
-        isExposureSupported = isExposureSupported,
-        hasFlashUnit = hasFlashUnit,
-        qrCodeText = qrCodeText,
-        isVideoSupported = true,
-        onFlashModeChanged = { flash ->
-          with(cameraSession.controller) {
-            setTorchEnabled(flash == Flash.Always)
-            setFlashMode(flash.toFlashMode())
-          }
-        },
-        onShowGridChanged = { showGrid = it },
-        onShowLevelChanged = { showLevel = it },
-        onShowFilterChanged = { showFilter = it },
-        onFilterChanged = { currentFilter = it },
-        onTimerChanged = { timerOption = it },
-        onWatermarkClick = { showWatermarkSheet = true },
-        onEvChanged = { cameraSession.controller.setExposureCompensation(it) },
-        onZoomFinish = { zoomHasChanged = false },
-        lastPicture = lastPicture,
-        onTakePicture = {
-          if (timerOption.seconds > 0) {
-            timerActive = true
-          } else {
-            takePictureWithParams()
-          }
-        },
-        onRecording = {
-          if (timerOption.seconds > 0) {
-            timerActive = true
-          } else {
-            startRecording()
-          }
-        },
-        onSwitchCamera = {
-          if (cameraSession.isStreaming) camSelector = camSelector.inverse
-        },
-        onCameraOptionChanged = { cameraOption = it },
-        onAspectRatioChanged = { aspectRatio = it },
-        onGalleryClick = onGalleryClick,
-        onConfigurationClick = onConfigurationClick,
-      )
-    }
+    // 覆盖层和 UI 控件放在 CameraPreview 外层，不受滤镜 RenderEffect 影响
+    GridOverlay(
+      visible = showGrid,
+      aspectRatio = aspectRatio.ratio,
+      isFullScreen = aspectRatio.isFullScreen,
+    )
+    LevelIndicator(visible = showLevel)
+    WatermarkOverlay(config = watermarkConfig)
+    TimerOverlay(
+      seconds = if (timerActive) timerOption.seconds else 0,
+      onFinished = {
+        timerActive = false
+        if (cameraOption == CameraOption.Video) onRecording()
+        else takePictureWithParams()
+      },
+    )
+    BlinkPictureBox(lastPicture, cameraOption == CameraOption.Video)
+
+    val startRecording = onRecording
+    CameraInnerContent(
+      Modifier.fillMaxSize(),
+      zoomHasChanged = zoomHasChanged,
+      zoomRatio = zoomRatio,
+      flashMode = flashMode.toFlash(enableTorch),
+      isRecording = isRecording,
+      cameraOption = cameraOption,
+      aspectRatio = aspectRatio,
+      showGrid = showGrid,
+      showLevel = showLevel,
+      showFilter = showFilter,
+      currentFilter = currentFilter,
+      timerOption = timerOption,
+      watermarkEnabled = watermarkConfig.enabled,
+      exposureCompensation = exposureCompensation,
+      evMin = evMin,
+      evMax = evMax,
+      isExposureSupported = isExposureSupported,
+      hasFlashUnit = hasFlashUnit,
+      qrCodeText = qrCodeText,
+      isVideoSupported = true,
+      onFlashModeChanged = { flash ->
+        with(cameraSession.controller) {
+          setTorchEnabled(flash == Flash.Always)
+          setFlashMode(flash.toFlashMode())
+        }
+      },
+      onShowGridChanged = { showGrid = it },
+      onShowLevelChanged = { showLevel = it },
+      onShowFilterChanged = { showFilter = it },
+      onFilterChanged = { currentFilter = it },
+      onTimerChanged = { timerOption = it },
+      onWatermarkClick = { showWatermarkSheet = true },
+      onEvChanged = { cameraSession.controller.setExposureCompensation(it) },
+      onZoomFinish = { zoomHasChanged = false },
+      lastPicture = lastPicture,
+      onTakePicture = {
+        if (timerOption.seconds > 0) {
+          timerActive = true
+        } else {
+          takePictureWithParams()
+        }
+      },
+      onRecording = {
+        if (timerOption.seconds > 0) {
+          timerActive = true
+        } else {
+          startRecording()
+        }
+      },
+      onSwitchCamera = {
+        if (cameraSession.isStreaming) camSelector = camSelector.inverse
+      },
+      onCameraOptionChanged = { cameraOption = it },
+      onAspectRatioChanged = { aspectRatio = it },
+      onGalleryClick = onGalleryClick,
+      onConfigurationClick = onConfigurationClick,
+    )
 
     // 水印设置面板 — 从底部滑入
     AnimatedVisibility(

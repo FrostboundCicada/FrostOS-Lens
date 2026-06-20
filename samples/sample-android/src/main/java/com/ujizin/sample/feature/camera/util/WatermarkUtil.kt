@@ -238,8 +238,8 @@ object WatermarkUtil {
     val w = result.width.toFloat()
     val h = result.height.toFloat()
     val scale = (w / 1080f).coerceIn(0.6f, 2.5f)
-    val baseFontSize = config.fontSize * scale * 1.6f
-    val padding = w * 0.04f
+    val baseFontSize = config.fontSize * scale * 1.4f
+    val padding = w * 0.05f
 
     val lines = buildContentLines(config, params)
     if (lines.isEmpty()) return result
@@ -248,10 +248,11 @@ object WatermarkUtil {
       color = Color.WHITE
       textSize = baseFontSize
       typeface = Typeface.DEFAULT_BOLD
+      isFakeBoldText = true
     }
     val subPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-      color = Color.argb(200, 255, 255, 255)
-      textSize = baseFontSize * 0.55f
+      color = Color.argb(210, 255, 255, 255)
+      textSize = baseFontSize * 0.5f
       typeface = Typeface.DEFAULT
     }
 
@@ -266,19 +267,37 @@ object WatermarkUtil {
     }
 
     val textBlockHeight = lineHeights.sum()
-    val bgPaddingH = w * 0.04f
-    val bgPaddingV = baseFontSize * 0.4f
+    val bgPaddingH = padding
+    val bgPaddingV = baseFontSize * 0.5f
     val bgHeight = textBlockHeight + bgPaddingV * 2
 
-    // 底部全宽渐变条
-    val bgTop = h - bgHeight - padding * 0.5f
+    // 底部全宽渐变条 — 从透明渐变到深色，延伸到图片最底部
+    val bgTop = h - bgHeight
     val bgPaint = Paint().apply { isAntiAlias = true }
     bgPaint.shader = LinearGradient(
-      0f, bgTop, 0f, bgTop + bgHeight,
-      intArrayOf(Color.argb(0, 0, 0, 0), Color.argb(160, 0, 0, 0)),
-      null, Shader.TileMode.CLAMP,
+      0f, bgTop - bgHeight * 0.8f, 0f, h,
+      intArrayOf(
+        Color.argb(0, 0, 0, 0),
+        Color.argb(80, 0, 0, 0),
+        Color.argb(180, 0, 0, 0),
+      ),
+      floatArrayOf(0f, 0.4f, 1f),
+      Shader.TileMode.CLAMP,
     )
-    canvas.drawRect(0f, bgTop, w, bgTop + bgHeight, bgPaint)
+    canvas.drawRect(0f, bgTop - bgHeight * 0.8f, w, h, bgPaint)
+
+    // 左侧装饰线（胶片孔洞风格）
+    val holePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+      color = Color.argb(60, 255, 255, 255)
+    }
+    val holeRadius = baseFontSize * 0.12f
+    val holeSpacing = baseFontSize * 0.5f
+    var holeY = bgTop + bgPaddingV
+    while (holeY < h - bgPaddingV) {
+      canvas.drawCircle(bgPaddingH * 0.5f, holeY, holeRadius, holePaint)
+      canvas.drawCircle(w - bgPaddingH * 0.5f, holeY, holeRadius, holePaint)
+      holeY += holeSpacing
+    }
 
     // 左对齐文字
     var textY = bgTop + bgPaddingV - titlePaint.fontMetrics.ascent

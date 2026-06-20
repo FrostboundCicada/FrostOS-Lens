@@ -71,8 +71,8 @@ class CameraViewModel(
   }
 
   /**
-   * 拍照 — 支持滤镜和水印合成
-   * 如果滤镜或水印启用，使用 ByteArray 重载获取图像数据，处理后保存
+   * 拍照 — 支持裁剪、滤镜和水印合成
+   * 如果裁剪/滤镜/水印任一启用，使用 ByteArray 重载获取图像数据，处理后保存
    * 否则走原有逻辑直接保存
    */
   fun takePicture(
@@ -80,16 +80,17 @@ class CameraViewModel(
     watermarkConfig: WatermarkConfig = WatermarkConfig(),
     filter: CameraFilter = CameraFilter.None,
     cameraParams: CameraParams = CameraParams(),
+    cropRatio: Float = 0f,
   ) = with(cameraController) {
     viewModelScope.launch {
-      if (watermarkConfig.enabled || filter != CameraFilter.None) {
+      if (watermarkConfig.enabled || filter != CameraFilter.None || cropRatio > 0f) {
         // 使用 ByteArray 重载，获取图像数据后处理
         takePicture { result ->
           when (result) {
             is CaptureResult.Error -> onError(result.throwable)
             is CaptureResult.Success -> {
               viewModelScope.launch {
-                processAndSaveImage(result.data, filter, watermarkConfig, cameraParams)
+                processAndSaveImage(result.data, filter, watermarkConfig, cameraParams, cropRatio)
               }
             }
           }
@@ -111,16 +112,21 @@ class CameraViewModel(
   }
 
   /**
-   * 处理图片：应用滤镜 → 合成水印 → 保存
+   * 处理图片：裁剪 → 应用滤镜 → 合成水印 → 保存
    */
   private suspend fun processAndSaveImage(
     jpegBytes: ByteArray,
     filter: CameraFilter,
     config: WatermarkConfig,
     cameraParams: CameraParams,
+    cropRatio: Float,
   ) = withContext(Dispatchers.IO) {
     try {
       var processedBytes = jpegBytes
+      // 0. 裁剪到目标比例
+      if (cropRatio > 0f) {
+        processedBytes = FilterUtil.cropToAspectRatio(processedBytes, cropRatio)
+      }
       // 1. 应用滤镜
       if (filter != CameraFilter.None) {
         processedBytes = FilterUtil.applyFilter(processedBytes, filter)
