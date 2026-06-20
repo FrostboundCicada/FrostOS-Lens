@@ -24,7 +24,10 @@ import com.ujizin.sample.data.local.datasource.UserDataSource
 import com.ujizin.sample.domain.User
 import com.ujizin.sample.extensions.getQRCodeResult
 import com.ujizin.sample.feature.camera.model.WatermarkConfig
+import com.ujizin.sample.feature.camera.model.CameraFilter
+import com.ujizin.sample.feature.camera.model.CameraParams
 import com.ujizin.sample.feature.camera.util.WatermarkUtil
+import com.ujizin.sample.feature.camera.util.FilterUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -68,29 +71,31 @@ class CameraViewModel(
   }
 
   /**
-   * 拍照 — 支持水印合成
-   * 如果水印启用，使用 ByteArray 重载获取图像数据，合成水印后保存
+   * 拍照 — 支持滤镜和水印合成
+   * 如果滤镜或水印启用，使用 ByteArray 重载获取图像数据，处理后保存
    * 否则走原有逻辑直接保存
    */
   fun takePicture(
     cameraController: CameraController,
     watermarkConfig: WatermarkConfig = WatermarkConfig(),
+    filter: CameraFilter = CameraFilter.None,
+    cameraParams: CameraParams = CameraParams(),
   ) = with(cameraController) {
     viewModelScope.launch {
-      if (watermarkConfig.enabled) {
-        // 使用 ByteArray 重载，获取图像数据后合成水印
+      if (watermarkConfig.enabled || filter != CameraFilter.None) {
+        // 使用 ByteArray 重载，获取图像数据后处理
         takePicture { result ->
           when (result) {
             is CaptureResult.Error -> onError(result.throwable)
             is CaptureResult.Success -> {
               viewModelScope.launch {
-                saveWatermarkedImage(result.data, watermarkConfig)
+                processAndSaveImage(result.data, filter, watermarkConfig, cameraParams)
               }
             }
           }
         }
       } else {
-        // 无水印 — 走原有逻辑
+        // 无滤镜无水印 — 走原有逻辑
         when {
           Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> takePicture(
             fileDataSource.imageContentValues,
@@ -106,17 +111,26 @@ class CameraViewModel(
   }
 
   /**
-   * 合成水印并保存图片
+   * 处理图片：应用滤镜 → 合成水印 → 保存
    */
-  private suspend fun saveWatermarkedImage(
+  private suspend fun processAndSaveImage(
     jpegBytes: ByteArray,
+    filter: CameraFilter,
     config: WatermarkConfig,
+    cameraParams: CameraParams,
   ) = withContext(Dispatchers.IO) {
     try {
-      val watermarkedBytes = WatermarkUtil.applyWatermark(jpegBytes, config)
-
+      var processedBytes = jpegBytes
+      // 1. 应用滤镜
+      if (filter != CameraFilter.None) {
+        processedBytes = FilterUtil.applyFilter(processedBytes, filter)
+      }
+      // 2. 合成水印（传入拍摄参数）
+      if (config.enabled) {
+        processedBytes = WatermarkUtil.applyWatermark(processedBytes, config, cameraParams)
+      }
+      // 3. 保存
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        // Android Q+ — 通过 MediaStore 保存
         val resolver = AppContextHolder.contentResolver
         val uri = resolver.insert(
           MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
@@ -124,15 +138,14 @@ class CameraViewModel(
         )
         uri?.let {
           resolver.openOutputStream(it)?.use { os ->
-            os.write(watermarkedBytes)
+            os.write(processedBytes)
             os.flush()
           }
         }
       } else {
-        // Pre-Q — 直接写文件
         val file = fileDataSource.getFile("jpg")
         FileOutputStream(file).use { fos ->
-          fos.write(watermarkedBytes)
+          fos.write(processedBytes)
           fos.flush()
         }
       }

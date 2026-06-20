@@ -9,9 +9,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -29,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ujizin.sample.feature.camera.model.WatermarkConfig
 import com.ujizin.sample.feature.camera.model.WatermarkPosition
+import com.ujizin.sample.feature.camera.model.WatermarkStyle
 
 /**
  * 水印设置面板 — 从底部弹出
@@ -43,10 +47,13 @@ fun WatermarkSettingsSheet(
   Column(
     modifier = modifier
       .fillMaxWidth()
-      .background(Color.Black.copy(alpha = 0.7f))
+      .heightIn(max = 520.dp)
+      .verticalScroll(rememberScrollState())
+      .background(Color.Black.copy(alpha = 0.85f))
       .padding(20.dp),
-    verticalArrangement = Arrangement.spacedBy(16.dp),
+    verticalArrangement = Arrangement.spacedBy(14.dp),
   ) {
+    // 标题栏
     Row(
       modifier = Modifier.fillMaxWidth(),
       horizontalArrangement = Arrangement.SpaceBetween,
@@ -74,28 +81,58 @@ fun WatermarkSettingsSheet(
     }
 
     // 启用开关
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Text("启用水印", color = Color.White, fontSize = 15.sp)
-      Switch(
-        checked = config.enabled,
-        onCheckedChange = { onConfigChanged(config.copy(enabled = it)) },
-        colors = SwitchDefaults.colors(
-          checkedTrackColor = MaterialTheme.colorScheme.primary,
-        ),
-      )
-    }
+    SettingRow(
+      label = "启用水印",
+      checked = config.enabled,
+      onCheckedChange = { onConfigChanged(config.copy(enabled = it)) },
+    )
 
     if (config.enabled) {
-      // 水印文字
-      Text("水印文字", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
+      // 样式选择
+      Text("样式", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+      ) {
+        WatermarkStyle.entries.forEach { style ->
+          val isSelected = config.style == style
+          val label = when (style) {
+            WatermarkStyle.Minimal -> "简洁"
+            WatermarkStyle.Card -> "卡片"
+            WatermarkStyle.FilmStrip -> "胶片"
+          }
+          SelectableChip(
+            text = label,
+            isSelected = isSelected,
+            modifier = Modifier.weight(1f),
+            onClick = { onConfigChanged(config.copy(style = style)) },
+          )
+        }
+      }
+
+      // 水印标题文字
+      Text("水印标题", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
       TextField(
         value = config.text,
         onValueChange = { onConfigChanged(config.copy(text = it)) },
         modifier = Modifier.fillMaxWidth(),
+        colors = TextFieldDefaults.colors(
+          focusedContainerColor = Color.White.copy(alpha = 0.1f),
+          unfocusedContainerColor = Color.White.copy(alpha = 0.08f),
+          focusedTextColor = Color.White,
+          unfocusedTextColor = Color.White,
+          cursorColor = MaterialTheme.colorScheme.primary,
+        ),
+        singleLine = true,
+      )
+
+      // 个人签名
+      Text("个人签名", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
+      TextField(
+        value = config.signature,
+        onValueChange = { onConfigChanged(config.copy(signature = it)) },
+        modifier = Modifier.fillMaxWidth(),
+        placeholder = { Text("输入你的签名", color = Color.White.copy(alpha = 0.4f), fontSize = 14.sp) },
         colors = TextFieldDefaults.colors(
           focusedContainerColor = Color.White.copy(alpha = 0.1f),
           unfocusedContainerColor = Color.White.copy(alpha = 0.08f),
@@ -112,72 +149,92 @@ fun WatermarkSettingsSheet(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
       ) {
-        WatermarkPosition.values().forEach { pos ->
-          val isSelected = config.position == pos
+        WatermarkPosition.entries.forEach { pos ->
           val label = when (pos) {
             WatermarkPosition.BottomLeft -> "左下"
             WatermarkPosition.BottomRight -> "右下"
             WatermarkPosition.TopLeft -> "左上"
             WatermarkPosition.TopRight -> "右上"
           }
-          Box(
-            modifier = Modifier
-              .weight(1f)
-              .clip(RoundedCornerShape(8.dp))
-              .background(
-                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                else Color.White.copy(alpha = 0.1f),
-              )
-              .border(
-                1.dp,
-                if (isSelected) MaterialTheme.colorScheme.primary
-                else Color.White.copy(alpha = 0.15f),
-                RoundedCornerShape(8.dp),
-              )
-              .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = { onConfigChanged(config.copy(position = pos)) },
-              )
-              .padding(vertical = 8.dp),
-            contentAlignment = Alignment.Center,
-          ) {
-            Text(label, color = Color.White, fontSize = 12.sp)
-          }
+          SelectableChip(
+            text = label,
+            isSelected = config.position == pos,
+            modifier = Modifier.weight(1f),
+            onClick = { onConfigChanged(config.copy(position = pos)) },
+          )
         }
       }
 
-      // 显示日期
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        Text("显示日期", color = Color.White, fontSize = 15.sp)
-        Switch(
-          checked = config.showDate,
-          onCheckedChange = { onConfigChanged(config.copy(showDate = it)) },
-          colors = SwitchDefaults.colors(
-            checkedTrackColor = MaterialTheme.colorScheme.primary,
-          ),
-        )
-      }
-
-      // 显示位置
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        Text("显示位置", color = Color.White, fontSize = 15.sp)
-        Switch(
-          checked = config.showLocation,
-          onCheckedChange = { onConfigChanged(config.copy(showLocation = it)) },
-          colors = SwitchDefaults.colors(
-            checkedTrackColor = MaterialTheme.colorScheme.primary,
-          ),
-        )
-      }
+      // 显示选项
+      SettingRow(
+        label = "显示日期",
+        checked = config.showDate,
+        onCheckedChange = { onConfigChanged(config.copy(showDate = it)) },
+      )
+      SettingRow(
+        label = "显示拍摄参数",
+        checked = config.showCameraParams,
+        onCheckedChange = { onConfigChanged(config.copy(showCameraParams = it)) },
+      )
+      SettingRow(
+        label = "显示位置",
+        checked = config.showLocation,
+        onCheckedChange = { onConfigChanged(config.copy(showLocation = it)) },
+      )
     }
+  }
+}
+
+@Composable
+private fun SettingRow(
+  label: String,
+  checked: Boolean,
+  onCheckedChange: (Boolean) -> Unit,
+) {
+  Row(
+    modifier = Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.SpaceBetween,
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Text(label, color = Color.White, fontSize = 15.sp)
+    Switch(
+      checked = checked,
+      onCheckedChange = onCheckedChange,
+      colors = SwitchDefaults.colors(
+        checkedTrackColor = MaterialTheme.colorScheme.primary,
+      ),
+    )
+  }
+}
+
+@Composable
+private fun SelectableChip(
+  text: String,
+  isSelected: Boolean,
+  modifier: Modifier = Modifier,
+  onClick: () -> Unit,
+) {
+  Box(
+    modifier = modifier
+      .clip(RoundedCornerShape(8.dp))
+      .background(
+        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+        else Color.White.copy(alpha = 0.1f),
+      )
+      .border(
+        1.dp,
+        if (isSelected) MaterialTheme.colorScheme.primary
+        else Color.White.copy(alpha = 0.15f),
+        RoundedCornerShape(8.dp),
+      )
+      .clickable(
+        interactionSource = remember { MutableInteractionSource() },
+        indication = null,
+        onClick = onClick,
+      )
+      .padding(vertical = 8.dp),
+    contentAlignment = Alignment.Center,
+  ) {
+    Text(text, color = Color.White, fontSize = 12.sp)
   }
 }

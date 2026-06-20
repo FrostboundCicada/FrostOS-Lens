@@ -70,34 +70,32 @@ fun LevelIndicator(
         // 根据屏幕旋转方向，将传感器轴映射到屏幕的"侧向"和"垂直"方向
         // lateral: 屏幕左右方向的重力分量（正=右倾）
         // vertical: 屏幕上下方向的重力分量（正=直立）
+        // 推导：传感器坐标系固定在设备上（X右Y上Z出屏），屏幕旋转后需重映射
         val (lateral, vertical) = when (rotation) {
-          // 竖屏：设备 +X = 屏幕右，设备 -Y = 屏幕上
-          // 重力在 -Y，直立时 vertical = -gy > 0
+          // 竖屏：屏幕右=设备+X，屏幕上=设备+Y，重力在-Y
           Surface.ROTATION_0 -> gx to -gy
 
-          // 横屏（设备逆时针转 90°）：设备 +X = 屏幕上，设备 -Y = 屏幕右
-          // 重力在 -X，直立时 vertical = -gx > 0
-          // 右倾时重力偏向 -Y，lateral = -gy > 0
-          Surface.ROTATION_90 -> -gy to -gx
+          // 向左横屏(设备逆时针90°)：屏幕右=设备+Y，屏幕上=设备+X，重力在-X
+          Surface.ROTATION_90 -> gy to -gx
 
-          // 反向竖屏：设备 +X = 屏幕左，设备 -Y = 屏幕下
-          // 重力在 +Y，直立时 vertical = gy > 0
+          // 倒置：屏幕右=设备-X，屏幕上=设备-Y，重力在+Y
           Surface.ROTATION_180 -> -gx to gy
 
-          // 反向横屏（设备顺时针转 90°）：设备 +X = 屏幕下，设备 +Y = 屏幕右
-          // 重力在 +X，直立时 vertical = gx > 0
-          // 右倾时重力偏向 +Y，lateral = gy > 0
-          Surface.ROTATION_270 -> gy to gx
+          // 向右横屏(设备顺时针90°)：屏幕右=设备-Y，屏幕上=设备-X，重力在+X
+          Surface.ROTATION_270 -> -gy to gx
 
           else -> gx to -gy
         }
 
-        // 只在垂直分量足够大时才计算（避免设备平放时分母为零）
+        // 只在垂直分量足够大时才计算（避免设备平放时误判）
+        // 阈值 3.0 ≈ 0.3g，平放时 lateral+vertical ≈ 0，不会触发
         val magnitude = sqrt(lateral * lateral + vertical * vertical)
-        if (magnitude > 0.5f) {
-          rollDegrees = Math.toDegrees(
+        if (magnitude > 3.0f) {
+          val newRoll = Math.toDegrees(
             atan2(lateral.toDouble(), vertical.toDouble()),
           ).toFloat()
+          // 低通滤波平滑角度，避免抖动
+          rollDegrees = rollDegrees * 0.7f + newRoll * 0.3f
         }
       }
 

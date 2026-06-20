@@ -54,4 +54,5 @@ dependencies {
   implementation(libs.cloudy)
   implementation(libs.monetcompat)
   implementation(libs.camposer)
+  implementation(libs.exifinterface)
 }

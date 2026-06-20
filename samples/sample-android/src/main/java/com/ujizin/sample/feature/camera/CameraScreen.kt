@@ -37,6 +37,7 @@ import com.ujizin.camposer.session.CameraSession
 import com.ujizin.camposer.session.rememberCameraSession
 import com.ujizin.camposer.session.rememberImageAnalyzer
 import com.ujizin.camposer.state.properties.ScaleType
+import com.ujizin.camposer.state.properties.ImplementationMode
 import com.ujizin.camposer.state.properties.VideoStabilizationMode
 import com.ujizin.camposer.state.properties.format.CamFormat
 import com.ujizin.camposer.state.properties.format.config.AspectRatioConfig
@@ -68,6 +69,7 @@ import com.ujizin.sample.feature.camera.model.CameraOption
 import com.ujizin.sample.feature.camera.model.Flash
 import com.ujizin.sample.feature.camera.model.TimerOption
 import com.ujizin.sample.feature.camera.model.WatermarkConfig
+import com.ujizin.sample.feature.camera.model.CameraParams
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
 
@@ -100,7 +102,9 @@ fun CameraScreen(
         onRecording = {
           viewModel.toggleRecording(context.contentResolver, cameraController)
         },
-        onTakePicture = { viewModel.takePicture(cameraController, watermarkConfig) },
+        onTakePicture = { params ->
+          viewModel.takePicture(cameraController, watermarkConfig, currentFilter, params)
+        },
         isRecording = isRecording,
         onAnalyzeImage = viewModel::analyzeImage,
       )
@@ -126,7 +130,7 @@ fun CameraSection(
   lastPicture: File?,
   watermarkConfig: WatermarkConfig,
   onWatermarkConfigChanged: (WatermarkConfig) -> Unit,
-  onTakePicture: () -> Unit,
+  onTakePicture: (CameraParams) -> Unit,
   onRecording: () -> Unit,
   onGalleryClick: () -> Unit,
   onAnalyzeImage: (ImageProxy) -> Unit,
@@ -162,6 +166,15 @@ fun CameraSection(
   val isExposureSupported = cameraInfoState.isExposureSupported
   val imageAnalyzer = cameraSession.rememberImageAnalyzer(analyze = onAnalyzeImage)
 
+  // 拍照时捕获当前相机参数，用于水印
+  val takePictureWithParams: () -> Unit = {
+    val params = CameraParams(
+      zoomRatio = zoomRatio,
+      exposureCompensation = exposureCompensation,
+    )
+    onTakePicture(params)
+  }
+
   LaunchedEffect(zoomRatio) { zoomHasChanged = true }
   val camDeviceState by rememberCameraDeviceState()
 
@@ -180,6 +193,9 @@ fun CameraSection(
       cameraSession = cameraSession,
       camSelector = camSelector,
       captureMode = cameraOption.toCaptureMode(),
+      // 有滤镜时用 Compatible(TextureView) 让 RenderEffect 生效
+      implementationMode = if (currentFilter != CameraFilter.None)
+        ImplementationMode.Compatible else ImplementationMode.Performance,
       camFormat = remember(aspectRatio) {
         CamFormat(
           AspectRatioConfig(aspectRatio.ratio),
@@ -207,12 +223,11 @@ fun CameraSection(
         onFinished = {
           timerActive = false
           if (cameraOption == CameraOption.Video) onRecording()
-          else onTakePicture()
+          else takePictureWithParams()
         },
       )
       BlinkPictureBox(lastPicture, cameraOption == CameraOption.Video)
 
-      val takePicture = onTakePicture
       val startRecording = onRecording
       CameraInnerContent(
         Modifier.fillMaxSize(),
@@ -254,7 +269,7 @@ fun CameraSection(
           if (timerOption.seconds > 0) {
             timerActive = true
           } else {
-            takePicture()
+            takePictureWithParams()
           }
         },
         onRecording = {

@@ -20,6 +20,7 @@ accompanist = "0.37.3"
 coil = "2.7.0"
 koin = "4.1.1"
 datastore = "1.2.0"
+exifinterface = "1.3.7"
 
 # kmp
 kotlinx-io = "0.8.2"
@@ -71,6 +72,7 @@ moko-permissions-microphone = { module = "dev.icerock.moko:permissions-microphon
 
 coil = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 coil-video = { module = "io.coil-kt:coil-video", version.ref = "coil" }
+exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 
 
 kotlinx-io = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinx-io" }

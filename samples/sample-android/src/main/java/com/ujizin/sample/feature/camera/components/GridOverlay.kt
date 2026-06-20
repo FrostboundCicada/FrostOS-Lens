@@ -31,22 +31,30 @@ fun GridOverlay(
       val canvasW = size.width
       val canvasH = size.height
 
+      // 竖屏时画布是竖向的(width < height)，相机预览也是竖向的
+      // aspectRatio 是横屏比例(如 4:3=1.333)，竖屏时需反转为 3:4=0.75
+      val effectiveRatio = if (canvasW < canvasH && aspectRatio > 1f) {
+        1f / aspectRatio
+      } else {
+        aspectRatio
+      }
+
       // 计算网格绘制区域 — 按图片比例居中
-      val (gridW, gridH, offsetX, offsetY) = if (isFullScreen || aspectRatio <= 0f) {
+      val (gridW, gridH, offsetX, offsetY) = if (isFullScreen || effectiveRatio <= 0f) {
         // 全屏模式或无比例：填满整个区域
         listOf(canvasW, canvasH, 0f, 0f)
       } else {
         // 按比例居中
         val canvasRatio = canvasW / canvasH
-        if (aspectRatio > canvasRatio) {
+        if (effectiveRatio > canvasRatio) {
           // 图片比画布更宽 — 以宽度为准
           val w = canvasW
-          val h = canvasW / aspectRatio
+          val h = canvasW / effectiveRatio
           listOf(w, h, 0f, (canvasH - h) / 2f)
         } else {
           // 图片比画布更高 — 以高度为准
           val h = canvasH
-          val w = canvasH * aspectRatio
+          val w = canvasH * effectiveRatio
           listOf(w, h, (canvasW - w) / 2f, 0f)
         }
       }
