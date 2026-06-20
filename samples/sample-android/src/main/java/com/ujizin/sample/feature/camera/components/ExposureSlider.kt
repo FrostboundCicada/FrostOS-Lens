@@ -13,7 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,7 +43,7 @@ fun ExposureSlider(
   if (minEv >= maxEv) return
 
   val sliderHeight = 140.dp
-  var sliderHeightPx by remember { mutableFloatStateOf(0f) }
+  var sliderHeightPx by remember { mutableStateOf(0f) }
   val range = maxEv - minEv
   val fraction = ((currentEv - minEv) / range).coerceIn(0f, 1f)
 

@@ -146,6 +146,7 @@ fun CameraSection(
   val camDeviceState by rememberCameraDeviceState()
 
   LaunchedEffect(camDeviceState) {
+    val camDeviceState = camDeviceState
     if (camDeviceState is CameraDeviceState.Devices) {
       Log.d("YUJI", "devices: ${camDeviceState.cameraDevices}")
     }
@@ -182,6 +183,9 @@ fun CameraSection(
       },
     )
     BlinkPictureBox(lastPicture, cameraOption == CameraOption.Video)
+    // Capture outer function references to avoid shadowing in CameraInnerContent lambdas
+    val takePicture = onTakePicture
+    val startRecording = onRecording
     CameraInnerContent(
       Modifier.fillMaxSize(),
       zoomHasChanged = zoomHasChanged,
@@ -214,14 +218,14 @@ fun CameraSection(
         if (timerOption.seconds > 0) {
           timerActive = true
         } else {
-          onTakePicture()
+          takePicture()
         }
       },
       onRecording = {
         if (timerOption.seconds > 0) {
           timerActive = true
         } else {
-          onRecording()
+          startRecording()
         }
       },
       onSwitchCamera = {

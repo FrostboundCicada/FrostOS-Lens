@@ -9,7 +9,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -34,7 +35,7 @@ fun LevelIndicator(
 ) {
   if (!visible) return
   val context = LocalContext.current
-  var rollDegrees by remember { mutableFloatStateOf(0f) }
+  var rollDegrees by remember { mutableStateOf(0f) }
 
   DisposableEffect(context) {
     val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
