@@ -72,7 +72,7 @@ object WatermarkUtil {
         iso = existing.iso.takeIf { it > 0 }
           ?: exif.getAttributeInt(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY, 0),
         exposureTime = existing.exposureTime.takeIf { it > 0 }
-          ?: exif.getAttributeLong(ExifInterface.TAG_EXPOSURE_TIME, 0L),
+          ?: exif.getAttribute(ExifInterface.TAG_EXPOSURE_TIME)?.toLongOrNull() ?: 0L,
         focalLength = existing.focalLength.takeIf { it > 0 }
           ?: exif.getAttributeDouble(ExifInterface.TAG_FOCAL_LENGTH, 0.0).toFloat(),
         fNumber = existing.fNumber.takeIf { it > 0 }

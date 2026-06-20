@@ -102,8 +102,8 @@ fun CameraScreen(
         onRecording = {
           viewModel.toggleRecording(context.contentResolver, cameraController)
         },
-        onTakePicture = { params ->
-          viewModel.takePicture(cameraController, watermarkConfig, currentFilter, params)
+        onTakePicture = { params, filter ->
+          viewModel.takePicture(cameraController, watermarkConfig, filter, params)
         },
         isRecording = isRecording,
         onAnalyzeImage = viewModel::analyzeImage,
@@ -130,7 +130,7 @@ fun CameraSection(
   lastPicture: File?,
   watermarkConfig: WatermarkConfig,
   onWatermarkConfigChanged: (WatermarkConfig) -> Unit,
-  onTakePicture: (CameraParams) -> Unit,
+  onTakePicture: (CameraParams, CameraFilter) -> Unit,
   onRecording: () -> Unit,
   onGalleryClick: () -> Unit,
   onAnalyzeImage: (ImageProxy) -> Unit,
@@ -166,13 +166,13 @@ fun CameraSection(
   val isExposureSupported = cameraInfoState.isExposureSupported
   val imageAnalyzer = cameraSession.rememberImageAnalyzer(analyze = onAnalyzeImage)
 
-  // 拍照时捕获当前相机参数，用于水印
+  // 拍照时捕获当前相机参数和滤镜，用于水印和滤镜合成
   val takePictureWithParams: () -> Unit = {
     val params = CameraParams(
       zoomRatio = zoomRatio,
       exposureCompensation = exposureCompensation,
     )
-    onTakePicture(params)
+    onTakePicture(params, currentFilter)
   }
 
   LaunchedEffect(zoomRatio) { zoomHasChanged = true }
